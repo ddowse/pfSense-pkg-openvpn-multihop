@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<pfsensepkgs>
+	<package>
+		<name>OpenVPN Client Multihop Utility</name>
+		<internal_name>openvpn-multihop</internal_name>
+		<descr><![CDATA[Provides an easy way to setup multihop OpenVPN Connections.]]></descr>
+		<version>%%PKGVERSION%%</version>
+		<configurationfile>openvpn-client-multihop.xml</configurationfile>
+	</package>
+</pfsensepkgs>
