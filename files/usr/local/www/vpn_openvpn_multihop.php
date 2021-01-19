@@ -45,14 +45,10 @@ if ($_POST['save']) {
 	exit;
 }
 
+//print_r($a_client);
 if ($act == "del") {
-	$del = count($a_client);
-	while ($del>=0) {
-	unset($a_client[$i]); 
-	write_config("Deleted");
-	log_error("deleted");
-	$del--;
-	}
+	unset($config['installedpackages']['openpvn-multihop']);
+	write_config("del");
 	print_info_box('Success');
 	header("Location: vpn_openvpn_multihop.php");
 	exit;
@@ -76,6 +72,9 @@ if ($act == "stop") {
 	service_control_stop("openvpn", $extras);
 	log_error("Stop");
 	//print_info_box('Success');
+	print_info_box('Success');
+	header("Location: vpn_openvpn_multihop.php");
+	exit;
 	}
 }
 
@@ -86,6 +85,7 @@ if ($act == "start") {
 	service_control_start("openvpn", $extras);
 	sleep(3);
 	log_error("Start");
+	exit;
 	}
 }
 
@@ -130,6 +130,17 @@ if ($act=="new"):
 		$a_client_select
 		))->setHelp('This Client will be added to the list.');
 
+	$section->addInput(new Form_Checkbox(
+		'autoconf',
+		'Autoconf',
+		'Add Autoconf',
+		'false'	
+		));
+//	$section->addInput(new Form_Button(
+//		'Cancel',
+//		'Cancel',
+//			
+//	));
 	$form->addGlobal(new Form_Input(
 		'act',
 		null,
