@@ -29,5 +29,5 @@ pkg delete pfSense-pkg-openvpn-multihop-0.1_1.txz
 - Auto add NAT Rules
 
 Note: This Package was made as a project for a client who wanted it to be available for the pfsense and open-source community, too.  
-Thanks John!   
-:thumbsup:
+
+Thanks John! :thumbsup:
