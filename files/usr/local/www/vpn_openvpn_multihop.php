@@ -1,8 +1,28 @@
 <?php
+/*
+* vpn_openvpn_multihop.php
+*
+* Copyright (c) 2021 Daniel Dowse, (https://daemonbytes.net)
+* All rights reserved.
+*
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+* http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+*/
+
+
 require_once("guiconfig.inc");
 require_once("openvpn.inc");
-require_once("pfsense-utils.inc");
-require_once("pkg-utils.inc");
+//require_once("pfsense-utils.inc");
+//require_once("pkg-utils.inc");
 require_once("service-utils.inc");
 
 global $config;
@@ -73,6 +93,18 @@ if ($act == "start") {
 		log_error("Mulithop: Client started");
 	}
 	log_error("Mulithop: All Clients started");
+}
+
+if ($act == "autorestart") {
+		foreach (array_reverse($a_client) as $start) {
+		$extras['vpnmode'] = "client";
+		$extras['id'] = $start['id'];
+		service_control_start("openvpn", $extras);
+		sleep(3);
+		log_error("Mulithop: Client started");
+	}
+	log_error("Mulithop: All Clients started");
+
 }
 
 $pgtitle = array("OpenVPN", "Client Mulithop");
@@ -190,7 +222,7 @@ print_info_box(gettext("DISCLAIMER: DEVELOPMENT VERSION - Last added Client will
 		<i class="fa fa-play-circle icon-embed-btn"></i>
 		<?=gettext("Start")?>
 	</a>
-	<a href="vpn_openvpn_multihop.php?act=start" class="btn btn-sm btn-success">
+	<a href="vpn_openvpn_multihop.php?act=autorestart" class="btn btn-sm btn-success">
 		<i class="fa fa-play-circle icon-embed-btn"></i>
 		<?=gettext("Autorestart")?>
 	</a>
