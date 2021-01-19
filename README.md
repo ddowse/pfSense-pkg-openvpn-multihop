@@ -8,7 +8,8 @@ Provides an easy way to setup multihop OpenVPN Connections.
 This utility will allow you to create a list of OpenVPN Tunnels and start them cascaded.                                                                                                                                                                                                                                                                                    
 e.g The the second tunnel will be established trough the first tunnel and so on. 
 
-Please see this Repo for more [details](https://github.com/ddowse/pf-tunnelactive)
+Please see this Repo for more [details](https://github.com/ddowse/pf-tunnelactive) in Setup and
+preperations. 
                                                                                                                                                                                                                                                                                                                                                                             
 ## Installation 
 
