@@ -1,6 +1,4 @@
 <?php
-
-
 require_once("guiconfig.inc");
 require_once("openvpn.inc");
 require_once("pfsense-utils.inc");
@@ -40,58 +38,47 @@ if ($_POST['save']) {
 	$ent['id']=$a_client_active[$name]['vpnid'];
 	$a_client[] = $ent;
 	write_config("Written");
-	log_error("New Client configuration added to the List");
+	log_error("Mulithop: New Client configuration added to the List");
 	header("Location: vpn_openvpn_multihop.php");
 	exit;
 }
 
-//print_r($a_client);
 if ($act == "del") {
 	unset($config['installedpackages']['openpvn-multihop']);
-	write_config("del");
+	write_config("Mulithop: List deleted ");
+	log_error("Mulithop: List deleted");
 	print_info_box('Success');
 	header("Location: vpn_openvpn_multihop.php");
 	exit;
 }
-/*
-	$del = count($a_client);
-	for ($i=0;$i<=$del;$i++) {
-	unset($a_client[$i]); 
-	write_config("Deleted");
-	log_error("deleted");
-	}
-	print_info_box('Success');
-	header("Location: vpn_openvpn_multihop.php");
-	exit;
-}
-*/
+
 if ($act == "stop") {
-	foreach ($a_client as $stop) {
-	$extras['vpnmode'] = "client";
-	$extras['id'] = $stop['id'];
-	service_control_stop("openvpn", $extras);
-	log_error("Stop");
-	//print_info_box('Success');
+		foreach ($a_client as $stop) {
+		$extras['vpnmode'] = "client";
+		$extras['id'] = $stop['id'];
+		service_control_stop("openvpn", $extras);
+		log_error("Mulithop: All Clients stopped");
+	}
 	print_info_box('Success');
 	header("Location: vpn_openvpn_multihop.php");
 	exit;
-	}
 }
 
 if ($act == "start") {
-	foreach (array_reverse($a_client) as $start) {
-	$extras['vpnmode'] = "client";
-	$extras['id'] = $start['id'];
-	service_control_start("openvpn", $extras);
-	sleep(3);
-	log_error("Start");
-	exit;
+		foreach (array_reverse($a_client) as $start) {
+		$extras['vpnmode'] = "client";
+		$extras['id'] = $start['id'];
+		service_control_start("openvpn", $extras);
+		sleep(3);
+		log_error("Mulithop: Client started");
 	}
+	log_error("Mulithop: All Clients started");
 }
+
+$pgtitle = array("OpenVPN", "Client Mulithop");
 
 include("head.inc");
 
-$pgtitle = array("OpenVPN", "Client Multihop");
 
 if (!$savemsg) {
 	$savemsg = "";
@@ -106,7 +93,6 @@ if ($savemsg) {
 }
 
 
-//print_r($a_client_select);
 $tab_array = array();
 $tab_array[] = array(gettext("Server"), false, "vpn_openvpn_server.php");
 $tab_array[] = array(gettext("Client"), false, "vpn_openvpn_client.php");
@@ -114,14 +100,11 @@ $tab_array[] = array(gettext("Client Specific Overrides"), false, "vpn_openvpn_c
 $tab_array[] = array(gettext("Wizards"), false, "wizard.php?xml=openvpn_wizard.xml");
 add_package_tabs("OpenVPN", $tab_array);
 display_top_tabs($tab_array);
-//$test = $a_client_active[1]['name'];
 
-//print $test;
 if ($act=="new"):
 	$form = new Form();
 
 	$section = new Form_Section('Add Client');
-
 
 	$section->addInput(new Form_Select(
 		'name', //Name
@@ -136,11 +119,6 @@ if ($act=="new"):
 		'Add Autoconf',
 		'false'	
 		));
-//	$section->addInput(new Form_Button(
-//		'Cancel',
-//		'Cancel',
-//			
-//	));
 	$form->addGlobal(new Form_Input(
 		'act',
 		null,
@@ -162,6 +140,7 @@ print($form);
 //END PHP
 print_info_box(gettext("DISCLAIMER: DEVELOPMENT VERSION - Last added Client will be the EXIT to the Internet ((YOU))->1->2-3->((INET))"  ));
 ?>
+
 <div class="panel panel-default">
 	<div class="panel-heading"><h2 class="panel-title"><?=gettext('OpenVPN Client Ordering')?></h2></div>
 		<div class="panel-body table-responsive">
@@ -211,6 +190,10 @@ print_info_box(gettext("DISCLAIMER: DEVELOPMENT VERSION - Last added Client will
 		<i class="fa fa-play-circle icon-embed-btn"></i>
 		<?=gettext("Start")?>
 	</a>
+	<a href="vpn_openvpn_multihop.php?act=start" class="btn btn-sm btn-success">
+		<i class="fa fa-play-circle icon-embed-btn"></i>
+		<?=gettext("Autorestart")?>
+	</a>
 	<a href="vpn_openvpn_multihop.php?act=stop" class="btn btn-sm btn-success">
 		<i class="text-danger fa fa-times-circle icon-embed-btn"></i>
 		<?=gettext("Stop")?>
@@ -220,4 +203,5 @@ print_info_box(gettext("DISCLAIMER: DEVELOPMENT VERSION - Last added Client will
 		<?=gettext("Delete")?>
 	</a>
 </nav>
+
 <?php include("foot.inc");?>
