@@ -207,7 +207,7 @@ if ($act=="new"):
 		'Autoconfigure',
 		'Add Routing Options',
 		'false'	
-		))->setHelp('This is somewhat mendatory. If you do not have put route-up commands in the custom-options of the clients configuration you will want this to be checked');
+		))->setHelp('This is somewhat mendatory. Adds \"route-up\" command in the clients options to set correct routing.');
 
 	$form->addGlobal(new Form_Input(
 		'act',
