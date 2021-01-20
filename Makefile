@@ -2,9 +2,9 @@
 
 PORTNAME=	pfSense-pkg-openvpn-multihop
 PORTVERSION=	0.1
-PORTREVISION=	1
+PORTREVISION=	2
 CATEGORIES=	security
-MASTER_SITES=	# empty
+MASTER_SITES=	# empty	
 DISTFILES=	# empty
 EXTRACT_ONLY=	# empty
 
@@ -27,10 +27,12 @@ do-extract:
 do-install:
 	${MKDIR} ${STAGEDIR}${PREFIX}/pkg
 	${MKDIR} ${STAGEDIR}${PREFIX}/www
-	${MKDIR} ${STAGEDIR}/etc/inc/priv
+	${MKDIR} ${STAGEDIR}${PREFIX}/etc/openvpn-multihop
 	${MKDIR} ${STAGEDIR}${DATADIR}
 	${INSTALL_DATA} -m 0644 ${FILESDIR}${PREFIX}/pkg/openvpn-client-multihop.xml \
 		${STAGEDIR}${PREFIX}/pkg
+	${INSTALL_DATA} -m 0750 ${FILESDIR}${PREFIX}/etc/openvpn-multihop/addroute.sh  \
+		${STAGEDIR}${PREFIX}/etc/openvpn-multihop
 	${INSTALL_DATA} ${FILESDIR}${PREFIX}/pkg/openvpn-client-multihop.inc \
 		${STAGEDIR}${PREFIX}/pkg
 	${INSTALL_DATA} ${FILESDIR}${PREFIX}/www/vpn_openvpn_multihop.php \

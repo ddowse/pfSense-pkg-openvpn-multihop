@@ -21,8 +21,6 @@
 
 require_once("guiconfig.inc");
 require_once("openvpn.inc");
-//require_once("pfsense-utils.inc");
-//require_once("pkg-utils.inc");
 require_once("service-utils.inc");
 
 global $config;
@@ -52,13 +50,55 @@ if ($act == "new") {
 }
 
 if ($_POST['save']) {
-	$name=$_POST['name'];
-	$ent=array();
-	$ent['name']=$a_client_active[$name]['name'];
-	$ent['id']=$a_client_active[$name]['vpnid'];
-	$a_client[] = $ent;
-	write_config("Written");
-	log_error("Mulithop: New Client configuration added to the List");
+
+		$id[]=$_POST['start'];
+		$id[]=$_POST['middle'];
+		$id[]=$_POST['exit'];
+
+		$autoconf=$_POST['autoconf'];
+
+		if ($autoconf == "yes") {
+			// Do not exec route commando since we add our own and set the right routing
+			$set_noroute_start = &$config['openvpn']['openvpn-client'][$id[0]]['route_no_exec'];
+			$set_noroute_middle = &$config['openvpn']['openvpn-client'][$id[1]]['route_no_exec'];
+
+
+			$set_noroute_start = "yes";
+			$set_noroute_middle = "yes";
+			unset($config['openvpn']['openvpn-client'][$id[2]]['route_no_exec']);
+	
+			// Get the Server IP for the route-up command
+			$server_middle = &$config['openvpn']['openvpn-client'][$id[1]]['server_addr'];
+			$server_exit = &$config['openvpn']['openvpn-client'][$id[2]]['server_addr'];
+	
+			$start_routecmd =  "\nroute-up \"/usr/local/etc/openvpn-multihop/addroute.sh {$server_middle}\"\n";
+			$middle_routecmd = "\nroute-up \"/usr/local/etc/openvpn-multihop/addroute.sh {$server_exit}\"\n";
+			
+			$conf_start = &$config['openvpn']['openvpn-client'][$id[0]]['custom_options']; 
+			$conf_middle = &$config['openvpn']['openvpn-client'][$id[1]]['custom_options'];
+	
+			/// XXX - I dont think this is working. 
+			if(!preg_match('/{$start_routecmd}/',$conf_start)) { 
+					$conf_start .= $start_routecmd;
+			}
+
+			if(!preg_match('/{$middle_routecmd}/',$conf_middle)) {
+					$conf_middle .= $middle_routecmd;
+			}
+		}
+
+		foreach($id as $tunnel => $member) {
+			$ent=array();
+			$ent['name']=$a_client_active[$member]['name'];
+			$ent['id']=$a_client_active[$member]['vpnid'];
+
+			$a_client[] = $ent;
+			write_config("Written");
+			$a_client = &$config['installedpackages']['openpvn-multihop']['item'];
+			log_error("Mulithop: New Client configuration added to the List");
+		}
+
+	log_error("Mulithop:New List created");
 	header("Location: vpn_openvpn_multihop.php");
 	exit;
 }
@@ -79,19 +119,21 @@ if ($act == "stop") {
 		service_control_stop("openvpn", $extras);
 		log_error("Mulithop: All Clients stopped");
 	}
+
 	print_info_box('Success');
 	header("Location: vpn_openvpn_multihop.php");
 	exit;
 }
 
 if ($act == "start") {
-		foreach (array_reverse($a_client) as $start) {
+		foreach ($a_client as $start) {
 		$extras['vpnmode'] = "client";
 		$extras['id'] = $start['id'];
 		service_control_start("openvpn", $extras);
 		sleep(3);
 		log_error("Mulithop: Client started");
 	}
+
 	log_error("Mulithop: All Clients started");
 }
 
@@ -103,6 +145,7 @@ if ($act == "autorestart") {
 		sleep(3);
 		log_error("Mulithop: Client started");
 	}
+
 	log_error("Mulithop: All Clients started");
 
 }
@@ -139,18 +182,33 @@ if ($act=="new"):
 	$section = new Form_Section('Add Client');
 
 	$section->addInput(new Form_Select(
-		'name', //Name
-		'*Client', //Description Asterik Is Inderline
-		$pconfig['name'],
+		'start', //Name
+		'*Start', //Description Asterik Is Inderline
+		$a_client_select['name'],
+		$a_client_select,
+		))->setHelp('This Client will be used as the first tunnel.');
+
+	$section->addInput(new Form_Select(
+		'middle', //Name
+		'*Middle', //Description Asterik Is Inderline
+		$a_client_select['name'],
 		$a_client_select
-		))->setHelp('This Client will be added to the list.');
+		))->setHelp('This Client will be used as the second/center tunnel.');
+
+	$section->addInput(new Form_Select(
+		'exit', //Name
+		'*Exit', //Description Asterik Is Inderline
+		$a_client_select['name'],
+		$a_client_select
+		))->setHelp('This Client will be used as the exit tunnel.');
 
 	$section->addInput(new Form_Checkbox(
 		'autoconf',
-		'Autoconf',
-		'Add Autoconf',
+		'Autoconfigure',
+		'Add Routing Options',
 		'false'	
-		));
+		))->setHelp('This is somewhat mendatory. If you do not have put route-up commands in the custom-options of the clients configuration you will want this to be checked');
+
 	$form->addGlobal(new Form_Input(
 		'act',
 		null,
@@ -158,12 +216,6 @@ if ($act=="new"):
 		$act
 		));
 
-	$form->addGlobal(new Form_Input(
-		'id',
-		null,
-		'hidden',
-		$id
-		));
 
 $form->add($section);
 endif;
@@ -179,7 +231,7 @@ print_info_box(gettext("DISCLAIMER: DEVELOPMENT VERSION - Last added Client will
 		<table class="table table-striped table-hover table-condensed sortable-theme-bootstrap table-rowdblclickedit" data-sortable>
 			<thead>
 				<tr>
-					<th><?=gettext("Layer")?></th>
+					<th><?=gettext("VPN ID")?></th>
 					<th><?=gettext("Description")?></th>
 					<th><?=gettext("Status"); ?></th>
 				</tr>
