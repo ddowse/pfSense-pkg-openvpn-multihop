@@ -76,16 +76,45 @@ if ($_POST['save']) {
 			
 			$conf_start = &$config['openvpn']['openvpn-client'][$id[0]]['custom_options']; 
 			$conf_middle = &$config['openvpn']['openvpn-client'][$id[1]]['custom_options'];
+			$conf_exit = &$config['openvpn']['openvpn-client'][$id[2]]['custom_options'];
 	
-			/// XXX - I dont think this is working. 
-			if(!preg_match('/{$start_routecmd}/',$conf_start)) { 
-					$conf_start .= $start_routecmd;
+			// Remove route-up from custom_options bevore applying new ones
+			$conf_start_check = explode("\n",$conf_start);
+			$idx=0;
+			foreach($conf_start_check as $check) {
+				if (preg_match("/route-up/",$check)) {
+				unset($conf_start_check[$idx]);
+				$conf_start = implode("\n",$conf_start_check);
+			}
+			$idx++;
 			}
 
-			if(!preg_match('/{$middle_routecmd}/',$conf_middle)) {
-					$conf_middle .= $middle_routecmd;
+			$conf_middle_check = explode("\n",$conf_middle);
+
+			$idx=0;
+			foreach($conf_middle_check as $check) {
+				if (preg_match("/route-up/",$check)) {
+				unset($conf_middle_check[$idx]);
+				$conf_middle = implode("\n",$conf_middle_check);
 			}
-		}
+			$idx++;
+			}
+
+			$conf_exit_check = explode("\n",$conf_exit);
+
+			$idx=0;
+			foreach($conf_exit_check as $check) {
+				if (preg_match("/route-up/",$check)) {
+				unset($conf_exit_check[$idx]);
+				$conf_exit = implode("\n",$conf_exit_check);
+			}
+			$idx++;
+			}
+
+
+			$conf_start .= $start_routecmd;
+			$conf_middle .= $middle_routecmd;
+		}	
 
 		foreach($id as $tunnel => $member) {
 			$ent=array();
@@ -104,6 +133,47 @@ if ($_POST['save']) {
 }
 
 if ($act == "del") {
+
+	$conf_start = &$config['openvpn']['openvpn-client'][$a_client[0]['id']]['custom_options']; 
+	$conf_middle = &$config['openvpn']['openvpn-client'][$a_client[1]['id']]['custom_options'];
+	$conf_exit = &$config['openvpn']['openvpn-client'][$a_client[2]['id']]['custom_options'];
+	
+	
+	$conf_start_check = explode("\n",$conf_start);
+	$idx=0;
+	foreach($conf_start_check as $check) {
+		if (preg_match("/route-up/",$check)) {
+		unset($conf_start_check[$idx]);
+		$conf_start = implode("\n",$conf_start_check);
+		log_error("Mulithop: Route CMD deleted");
+		}
+	$idx++;
+	}
+	
+	$conf_middle_check = explode("\n",$conf_middle);
+	
+	$idx=0;
+	foreach($conf_middle_check as $check) {
+		if (preg_match("/route-up/",$check)) {
+		unset($conf_middle_check[$idx]);
+		$conf_middle = implode("\n",$conf_middle_check);
+		log_error("Mulithop: Route CMD deleted");
+		}
+	$idx++;
+	}
+	
+	$conf_exit_check = explode("\n",$conf_exit);
+	
+	$idx=0;
+	foreach($conf_exit_check as $check) {
+		if (preg_match("/route-up/",$check)) {
+		unset($conf_exit_check[$idx]);
+		$conf_exit = implode("\n",$conf_exit_check);
+		log_error("Mulithop: Route CMD deleted");
+		}
+	$idx++;
+	}
+
 	unset($config['installedpackages']['openpvn-multihop']);
 	write_config("Mulithop: List deleted ");
 	log_error("Mulithop: List deleted");
