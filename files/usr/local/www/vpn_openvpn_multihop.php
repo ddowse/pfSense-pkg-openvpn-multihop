@@ -23,7 +23,17 @@ require_once("guiconfig.inc");
 require_once("openvpn.inc");
 require_once("service-utils.inc");
 
-global $config;
+//require_once("/usr/local/pkg/openvpn_multihop.inc");
+
+function debug($show) {
+	print "--------------HEADER--------------\n";
+	print_r($show);
+	print "--------------BOTTOM--------------\n";
+
+	exit;
+}
+
+global $config, $mode;
 
 if(!is_array($config['installedpackages']['openpvn-multihop'])){
 	$config['installedpackages']['openpvn-multihop']=array();
@@ -33,147 +43,188 @@ if(!is_array($config['installedpackages']['openpvn-multihop']['item'])){
 	$config['installedpackages']['openpvn-multihop']['item']=array();
 }
 
+// default openvpn mode 
+$mode = "client";
+
+// our config array in confix.xml - debug: use viconfig
 $a_client = &$config['installedpackages']['openpvn-multihop']['item'];
 
-$a_client_active = openvpn_get_active_clients();
+// openvpn-client array 
+$c_client = &$config['openvpn']['openvpn-client'];
 
-$a_client_select=array();
-	
-foreach($a_client_active as $descr) {
-	$a_client_select[]=$descr['name'];
+// returns all enabled ovpn clients 
+$a_active = openvpn_get_active_clients();
+
+// Build the select list 
+
+// Get all the VPNID's that are already in multihop list
+if(empty($a_client)) {
+	foreach($a_active as $client ) {
+		$vpnid=$client['vpnid'];
+		$settings = openvpn_get_settings($mode, $vpnid);
+		$a_value[]=$settings['description'];
+		$a_id['vpnid'][]=$settings['vpnid'];
+	}
+} else {
+foreach($a_client as $item){
+		$a_isconf[]=$item['vpnid'];
+	}
+// Get all the VPNID's of active clients
+foreach($a_active as $client){
+		$a_isactive[]=$client['vpnid'];
+	}
+
+// Return the values 
+$a_isconf_val=array_values($a_isconf);
+$a_isactive_val=array_values($a_isactive);
+
+// Return the diff of both 
+$a_select=array_diff($a_isactive_val,$a_isconf_val);
+
+// Build select list by "is active" and "not in list"
+if(!empty($a_select)) {
+	foreach($a_select as $vpnid) {
+		$settings = openvpn_get_settings($mode, $vpnid);
+		$a_value[]=$settings['description'];
+		$a_id['vpnid'][]=$settings['vpnid'];
+	}
+} else {
+	$a_value[]='empty';
 }
-
+}
 $act = $_REQUEST['act'];
 
 if ($act == "new") {
 	//Nothing here yet
 }
 
+
+// returns the key of ['server_addr'] this is the to be used
+// to set the route-up command
+function server_addr($vpnid) {
+		$settings = openvpn_get_settings($mode,$vpnid);
+		$server = $settings['server_addr'];
+		return $server;	
+}
+
 if ($_POST['save']) {
 
-		$id[]=$_POST['start'];
-		$id[]=$_POST['middle'];
-		$id[]=$_POST['exit'];
+if(isset($_POST['start'])) {
+	$id['start']=$_POST['start'];
+}
 
-		$autoconf=$_POST['autoconf'];
+if(isset($_POST['exit'])) {
+	$id['exit']=$_POST['exit'];
+}
 
-		if ($autoconf == "yes") {
-			// Do not exec route commando since we add our own and set the right routing
-			$set_noroute_start = &$config['openvpn']['openvpn-client'][$id[0]]['route_no_exec'];
-			$set_noroute_middle = &$config['openvpn']['openvpn-client'][$id[1]]['route_no_exec'];
+if(isset($_POST['autoconf'])) {
+	$autoconf=$_POST['autoconf'];
+}
 
+if(isset($_POST['start'])) {
+	if ($autoconf == "yes") {
+			//$vpnid = $a_select[$id['start']]['vpnid'];
+			$vpnid = $a_id['vpnid'][$id['start']];
+			$settings = openvpn_get_settings($mode,$vpnid);
+			$settings['route_no_exec'] = "yes";
+			$server = server_addr($a_id['vpnid'][$id['exit']]);
+			$settings['custom_options'] .=  "\nroute-up \"/usr/local/etc/openvpn-multihop/addroute.sh {$server}\"\n";
+			$c_client[$id['start']] = $settings;
+	}
+}
 
-			$set_noroute_start = "yes";
-			$set_noroute_middle = "yes";
-			unset($config['openvpn']['openvpn-client'][$id[2]]['route_no_exec']);
+if(isset($_POST['exit'])) {
+	if ($autoconf == "yes") {
+
+			if(count($a_client) >= 2) {
+			// Get the current exit tunnel and change settings
+			$cur_exit = end($a_client);
+			$cur_vpnid = $cur_exit['vpnid'];
+			$vpnid = $a_id['vpnid'][$id['exit']];
+			$settings = openvpn_get_settings($mode,$cur_vpnid);
+			// set routing option
+			$settings['route_no_exec'] = "yes";
+
+			// set route-up command with ip of the new exit
+			$server = server_addr($vpnid);
+			$settings['custom_options'] .=  "\nroute-up \"/usr/local/etc/openvpn-multihop/addroute.sh {$server}\"\n";
+		
+			// get the correct index of the openvpn-client array in config.xml
+			// so we can write the new settings to it
+			$cur_index = array_search($cur_vpnid,array_column($c_client,'vpnid'));
 	
-			// Get the Server IP for the route-up command
-			$server_middle = &$config['openvpn']['openvpn-client'][$id[1]]['server_addr'];
-			$server_exit = &$config['openvpn']['openvpn-client'][$id[2]]['server_addr'];
-	
-			$start_routecmd =  "\nroute-up \"/usr/local/etc/openvpn-multihop/addroute.sh {$server_middle}\"\n";
-			$middle_routecmd = "\nroute-up \"/usr/local/etc/openvpn-multihop/addroute.sh {$server_exit}\"\n";
+			// save the new settings 
+			$c_client[$cur_index] = $settings;
 			
-			$conf_start = &$config['openvpn']['openvpn-client'][$id[0]]['custom_options']; 
-			$conf_middle = &$config['openvpn']['openvpn-client'][$id[1]]['custom_options'];
-			$conf_exit = &$config['openvpn']['openvpn-client'][$id[2]]['custom_options'];
-	
-			// Remove route-up from custom_options bevore applying new ones
-			$conf_start_check = explode("\n",$conf_start);
-			$idx=0;
-			foreach($conf_start_check as $check) {
-				if (preg_match("/route-up/",$check)) {
-				unset($conf_start_check[$idx]);
-				$conf_start = implode("\n",$conf_start_check);
-			}
-			$idx++;
+			// Add NEW exit
+			$settings = openvpn_get_settings($mode,$vpnid);
+			unset($settings['route_no_exec']);
+
+			$index = array_search($vpnid,array_column($c_client,'vpnid'));
+			
+			$c_client[$index] = $settings;
+
 			}
 
-			$conf_middle_check = explode("\n",$conf_middle);
+			// default with just 2 tunnels
+			$vpnid = $a_id['vpnid'][$id['exit']];
 
-			$idx=0;
-			foreach($conf_middle_check as $check) {
-				if (preg_match("/route-up/",$check)) {
-				unset($conf_middle_check[$idx]);
-				$conf_middle = implode("\n",$conf_middle_check);
-			}
-			$idx++;
-			}
+			$settings = openvpn_get_settings($mode,$vpnid);
+			unset($settings['route_no_exec']);
 
-			$conf_exit_check = explode("\n",$conf_exit);
+			$index = array_search($vpnid,array_column($c_client,'vpnid'));
 
-			$idx=0;
-			foreach($conf_exit_check as $check) {
-				if (preg_match("/route-up/",$check)) {
-				unset($conf_exit_check[$idx]);
-				$conf_exit = implode("\n",$conf_exit_check);
-			}
-			$idx++;
-			}
+			//$c_client[$id['exit']] = $settings;
+			$c_client[$index] = $settings;
+	}
+}
 
+	foreach($id as $add=> $new) {
+		$ent=array();
+		$ent['name']=$a_value[$new];
+		$ent['vpnid']=$a_id['vpnid'][$new];
+		$a_client[] = $ent;
+		//$a_client = &$config['installedpackages']['openpvn-multihop']['item'];
+		log_error("Mulithop: New Client configuration added to the List");
+	}
 
-			$conf_start .= $start_routecmd;
-			$conf_middle .= $middle_routecmd;
-		}	
-
-		foreach($id as $tunnel => $member) {
-			$ent=array();
-			$ent['name']=$a_client_active[$member]['name'];
-			$ent['id']=$a_client_active[$member]['vpnid'];
-
-			$a_client[] = $ent;
-			write_config("Written");
-			$a_client = &$config['installedpackages']['openpvn-multihop']['item'];
-			log_error("Mulithop: New Client configuration added to the List");
-		}
+	write_config("Written");
 
 	log_error("Mulithop:New List created");
 	header("Location: vpn_openvpn_multihop.php");
 	exit;
 }
-
 if ($act == "del") {
+	// Get the array and loop over it, use vpnid to get correct
+	// openvpn-client 
 
-	$conf_start = &$config['openvpn']['openvpn-client'][$a_client[0]['id']]['custom_options']; 
-	$conf_middle = &$config['openvpn']['openvpn-client'][$a_client[1]['id']]['custom_options'];
-	$conf_exit = &$config['openvpn']['openvpn-client'][$a_client[2]['id']]['custom_options'];
-	
-	
-	$conf_start_check = explode("\n",$conf_start);
-	$idx=0;
-	foreach($conf_start_check as $check) {
-		if (preg_match("/route-up/",$check)) {
-		unset($conf_start_check[$idx]);
-		$conf_start = implode("\n",$conf_start_check);
-		log_error("Mulithop: Route CMD deleted");
-		}
-	$idx++;
-	}
-	
-	$conf_middle_check = explode("\n",$conf_middle);
-	
-	$idx=0;
-	foreach($conf_middle_check as $check) {
-		if (preg_match("/route-up/",$check)) {
-		unset($conf_middle_check[$idx]);
-		$conf_middle = implode("\n",$conf_middle_check);
-		log_error("Mulithop: Route CMD deleted");
-		}
-	$idx++;
-	}
-	
-	$conf_exit_check = explode("\n",$conf_exit);
-	
-	$idx=0;
-	foreach($conf_exit_check as $check) {
-		if (preg_match("/route-up/",$check)) {
-		unset($conf_exit_check[$idx]);
-		$conf_exit = implode("\n",$conf_exit_check);
-		log_error("Mulithop: Route CMD deleted");
-		}
-	$idx++;
-	}
+	foreach($a_client as $item) {
+		$vpnid = $item['vpnid'];
+		$settings = openvpn_get_settings($mode,$vpnid);
+		
+		// Get custom_options and split it into an array
+		// so we can parse it an find route-up line and 
+		// remove it eventually 
 
+		$l_custom = $settings['custom_options'];
+		$a_custom = explode("\n",$l_custom);
+		
+		$idx=0;
+
+		foreach($a_custom as $parse ){
+			if (preg_match("/route-up/",$parse)) {
+			$index = array_search($vpnid,array_column($c_client,'vpnid'));
+			unset($a_custom[$idx]);
+			$l_custom = implode("\n",$a_custom);
+			$settings['custom_options'] = $l_custom;
+			unset($settings['route_no_exec']);
+			$c_client[$index] = $settings;
+			log_error("Mulithop: Route CMD deleted");
+			break;
+		}
+	$idx++;
+	}
+}
 	unset($config['installedpackages']['openpvn-multihop']);
 	write_config("Mulithop: List deleted ");
 	log_error("Mulithop: List deleted");
@@ -200,6 +251,9 @@ if ($act == "start") {
 		$extras['vpnmode'] = "client";
 		$extras['id'] = $start['id'];
 		service_control_start("openvpn", $extras);
+		// XXX - Check pfSense source code for a function
+		// that allows to get connection success information
+		// for now just wait.. and hope for the best. 
 		sleep(3);
 		log_error("Mulithop: Client started");
 	}
@@ -247,61 +301,69 @@ add_package_tabs("OpenVPN", $tab_array);
 display_top_tabs($tab_array);
 
 if ($act=="new"):
+// TODO 
+if($a_value[0] == "empty") {
+	$savemsg="Nothing";
+	header("Location: vpn_openvpn_multihop.php");
+	print_info_box($savemsg, 'warning',"close");
+}
 	$form = new Form();
 
-	$section = new Form_Section('Add Client');
+$section = new Form_Section('Add Client');
 
-	$section->addInput(new Form_Select(
-		'start', //Name
-		'*Start', //Description Asterik Is Inderline
-		$a_client_select['name'],
-		$a_client_select,
-		))->setHelp('This Client will be used as the first tunnel.');
-
-	$section->addInput(new Form_Select(
-		'middle', //Name
-		'*Middle', //Description Asterik Is Inderline
-		$a_client_select['name'],
-		$a_client_select
-		))->setHelp('This Client will be used as the second/center tunnel.');
-
+if(!empty($a_client)) { 
 	$section->addInput(new Form_Select(
 		'exit', //Name
-		'*Exit', //Description Asterik Is Inderline
-		$a_client_select['name'],
-		$a_client_select
-		))->setHelp('This Client will be used as the exit tunnel.');
+		'New Exit', //Description Asterik Is Inderline
+		$a_value['description'],
+		$a_value
+		))->setHelp('This Client will be added to the list of tunnels and act as the  new exit');
+	$form->add($section);
 
 	$section->addInput(new Form_Checkbox(
 		'autoconf',
-		'Autoconfigure',
+		'Set Routing',
 		'Add Routing Options',
-		'false'	
-		))->setHelp('This is somewhat mendatory. Adds \"route-up\" command in the clients options to set correct routing.');
+		'true'	
+		))->setHelp('Uncheck only if you do not want to configure routing automatically.');
+} else {
+	$section->addInput(new Form_Select(
+		'start', //Name
+		'Start', //Description Asterik Is Inderline
+		$a_value['description'],
+		$a_value
+		))->setHelp('This Client will be the first Tunnel');
 
-	$form->addGlobal(new Form_Input(
-		'act',
-		null,
-		'hidden',
-		$act
-		));
+	$section->addInput(new Form_Select(
+		'exit', //Name
+		'Exit', //Description Asterik Is Inderline
+		$a_value['description'],
+		$a_value
+		))->setHelp('This Client will the Exit Tunnel');
+	$form->add($section);
 
+	$section->addInput(new Form_Checkbox(
+		'autoconf',
+		'Set Routing',
+		'Add Routing Options',
+		'true'	
+		))->setHelp('Uncheck only if you do not want to configure routing automatically');
+}
 
-$form->add($section);
 endif;
 
 print($form);
 //END PHP
-print_info_box(gettext("DISCLAIMER: DEVELOPMENT VERSION - Last added Client will be the EXIT to the Internet ((YOU))->1->2-3->((INET))"  ));
 ?>
 
 <div class="panel panel-default">
-	<div class="panel-heading"><h2 class="panel-title"><?=gettext('OpenVPN Client Ordering')?></h2></div>
+	<div class="panel-heading"><h2 class="panel-title"><?=gettext('Chain')?></h2></div>
 		<div class="panel-body table-responsive">
 		<table class="table table-striped table-hover table-condensed sortable-theme-bootstrap table-rowdblclickedit" data-sortable>
 			<thead>
 				<tr>
-					<th><?=gettext("VPN ID")?></th>
+					<!-- <th><?//=gettext("VPN ID")?></th> -->
+					<th><?=gettext("Number")?></th>
 					<th><?=gettext("Description")?></th>
 					<th><?=gettext("Status"); ?></th>
 				</tr>
@@ -309,18 +371,18 @@ print_info_box(gettext("DISCLAIMER: DEVELOPMENT VERSION - Last added Client will
 
 			<tbody>
 <?php
-	$i = 0;
-	foreach ($a_client as $t_client):
+	$i = 1;
+	foreach ($a_client as $value):
 ?>
 				<tr>
 					<td>
-						<?=htmlspecialchars($t_client['id'])?>
+						<?=htmlspecialchars($i)?>
 					</td>
 					<td>
-						<?=htmlspecialchars($t_client['name'])?>
+						<?=htmlspecialchars($value['name'])?>
 					</td>
 					<td>
-						<?php $ssvc = find_service_by_openvpn_vpnid($t_client['id']); ?>
+						<?php $ssvc = find_service_by_openvpn_vpnid($value['vpnid']); ?>
 						<?= get_service_status_icon($ssvc, false, true); ?>
 					</td>
 				</tr>
@@ -344,10 +406,11 @@ print_info_box(gettext("DISCLAIMER: DEVELOPMENT VERSION - Last added Client will
 		<i class="fa fa-play-circle icon-embed-btn"></i>
 		<?=gettext("Start")?>
 	</a>
-	<a href="vpn_openvpn_multihop.php?act=autorestart" class="btn btn-sm btn-success">
+<!--	<a href="vpn_openvpn_multihop.php?act=autorestart" class="btn btn-sm btn-success">
 		<i class="fa fa-play-circle icon-embed-btn"></i>
 		<?=gettext("Autorestart")?>
 	</a>
+-->
 	<a href="vpn_openvpn_multihop.php?act=stop" class="btn btn-sm btn-success">
 		<i class="text-danger fa fa-times-circle icon-embed-btn"></i>
 		<?=gettext("Stop")?>
