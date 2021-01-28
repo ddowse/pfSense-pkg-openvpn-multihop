@@ -14,16 +14,16 @@ preperations.
 ## Installation 
 
 ```bash: 
-fetch https://github.com/ddowse/pfSense-pkg-openvpn-multihop/releases/download/v0.1_1/pfSense-pkg-openvpn-multihop-0.1_1.txz
-pkg add pfSense-pkg-openvpn-multihop-0.1_1.txz
+fetch https://github.com/ddowse/pfSense-pkg-openvpn-multihop/releases/download/v0.1_1/pfSense-pkg-openvpn-multihop-0.1_4.txz
+pkg add pfSense-pkg-openvpn-multihop-0.1_4.txz
 #delete
-pkg delete pfSense-pkg-openvpn-multihop-0.1_1.txz
+pkg delete pfSense-pkg-openvpn-multihop-0.1_4
 ```
 
 # TODO: 
 - If OpenVPN Client is in list - remove from Select Menu to avoid double selection
 - ~Add route-up command to custom-options of tunnel. [details](https://github.com/ddowse/pf-tunnelactive#cascading-vpn)~
-- Add code to delete route-up 
+- ~Add code to delete route-up~ 
 - Add autorestart option
 
 # Nice to have
