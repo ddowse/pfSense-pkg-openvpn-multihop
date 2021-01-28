@@ -236,7 +236,7 @@ if ($act == "del") {
 if ($act == "stop") {
 		foreach ($a_client as $stop) {
 		$extras['vpnmode'] = "client";
-		$extras['id'] = $stop['id'];
+		$extras['id'] = $stop['vpnid'];
 		service_control_stop("openvpn", $extras);
 		log_error("Mulithop: All Clients stopped");
 	}
@@ -249,7 +249,7 @@ if ($act == "stop") {
 if ($act == "start") {
 		foreach ($a_client as $start) {
 		$extras['vpnmode'] = "client";
-		$extras['id'] = $start['id'];
+		$extras['id'] = $start['vpnid'];
 		service_control_start("openvpn", $extras);
 		// XXX - Check pfSense source code for a function
 		// that allows to get connection success information
@@ -264,7 +264,7 @@ if ($act == "start") {
 if ($act == "autorestart") {
 		foreach (array_reverse($a_client) as $start) {
 		$extras['vpnmode'] = "client";
-		$extras['id'] = $start['id'];
+		$extras['id'] = $start['vpnid'];
 		service_control_start("openvpn", $extras);
 		sleep(3);
 		log_error("Mulithop: Client started");
