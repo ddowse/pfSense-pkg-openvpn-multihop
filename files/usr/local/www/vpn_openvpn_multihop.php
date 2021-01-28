@@ -35,19 +35,19 @@ function debug($show) {
 
 global $config, $mode;
 
-if(!is_array($config['installedpackages']['openpvn-multihop'])){
-	$config['installedpackages']['openpvn-multihop']=array();
+if(!is_array($config['installedpackages']['openvpn-multihop'])){
+	$config['installedpackages']['openvpn-multihop']=array();
 }
 
-if(!is_array($config['installedpackages']['openpvn-multihop']['item'])){
-	$config['installedpackages']['openpvn-multihop']['item']=array();
+if(!is_array($config['installedpackages']['openvpn-multihop']['item'])){
+	$config['installedpackages']['openvpn-multihop']['item']=array();
 }
 
 // default openvpn mode 
 $mode = "client";
 
 // our config array in confix.xml - debug: use viconfig
-$a_client = &$config['installedpackages']['openpvn-multihop']['item'];
+$a_client = &$config['installedpackages']['openvpn-multihop']['item'];
 
 // openvpn-client array 
 $c_client = &$config['openvpn']['openvpn-client'];
@@ -184,7 +184,7 @@ if(isset($_POST['exit'])) {
 		$ent['name']=$a_value[$new];
 		$ent['vpnid']=$a_id['vpnid'][$new];
 		$a_client[] = $ent;
-		//$a_client = &$config['installedpackages']['openpvn-multihop']['item'];
+		//$a_client = &$config['installedpackages']['openvpn-multihop']['item'];
 		log_error("Mulithop: New Client configuration added to the List");
 	}
 
@@ -225,7 +225,7 @@ if ($act == "del") {
 	$idx++;
 	}
 }
-	unset($config['installedpackages']['openpvn-multihop']);
+	unset($config['installedpackages']['openvpn-multihop']);
 	write_config("Mulithop: List deleted ");
 	log_error("Mulithop: List deleted");
 	print_info_box('Success');
