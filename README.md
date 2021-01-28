@@ -1,7 +1,7 @@
 # pfSense-pkg-openvpn-multihop
 Provides an easy way to setup multihop OpenVPN Connections. 
 
-![screenshot](screenshot.png)
+![screenshot](screenrecord.gif)
 
 ### Work in Progress.
 
