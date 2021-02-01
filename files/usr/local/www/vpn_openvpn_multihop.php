@@ -117,12 +117,11 @@ if(isset($_POST['exit'])) {
 	$id['exit']=$_POST['exit'];
 }
 
-if(isset($_POST['autoconf'])) {
-	$autoconf=$_POST['autoconf'];
+if(isset($_POST['norouting'])) {
+	$norouting = $_POST['norouting'];
 }
 
 if(isset($_POST['start'])) {
-	if ($autoconf == "yes") {
 			//$vpnid = $a_select[$id['start']]['vpnid'];
 			$vpnid = $a_id['vpnid'][$id['start']];
 			$settings = openvpn_get_settings($mode,$vpnid);
@@ -134,7 +133,6 @@ if(isset($_POST['start'])) {
 }
 
 if(isset($_POST['exit'])) {
-	if ($autoconf == "yes") {
 
 			if(count($a_client) >= 2) {
 			// Get the current exit tunnel and change settings
@@ -142,9 +140,9 @@ if(isset($_POST['exit'])) {
 			$cur_vpnid = $cur_exit['vpnid'];
 			$vpnid = $a_id['vpnid'][$id['exit']];
 			$settings = openvpn_get_settings($mode,$cur_vpnid);
-			// set routing option
-			$settings['route_no_exec'] = "yes";
 
+			$settings['route_no_exec'] = "yes";
+			
 			// set route-up command with ip of the new exit
 			$server = server_addr($vpnid);
 			$settings['custom_options'] .=  "\nroute-up \"/usr/local/etc/openvpn-multihop/addroute.sh {$server}\"\n";
@@ -158,7 +156,12 @@ if(isset($_POST['exit'])) {
 			
 			// Add NEW exit
 			$settings = openvpn_get_settings($mode,$vpnid);
-			unset($settings['route_no_exec']);
+
+			if ($norouting == "yes") {
+				unset($settings['route_no_exec']);
+			} else {
+				$settings['route_no_exec'] = "yes";
+			}
 
 			$index = array_search($vpnid,array_column($c_client,'vpnid'));
 			
@@ -166,18 +169,22 @@ if(isset($_POST['exit'])) {
 
 			}
 
-			// default with just 2 tunnels
+			// default, just 2 tunnels
 			$vpnid = $a_id['vpnid'][$id['exit']];
 
 			$settings = openvpn_get_settings($mode,$vpnid);
-			unset($settings['route_no_exec']);
+
+			// In case one does not want to default route everything to the tunnel
+			if ($norouting == "yes") {
+				unset($settings['route_no_exec']);
+			} else {
+				$settings['route_no_exec'] = "yes";
+			}
 
 			$index = array_search($vpnid,array_column($c_client,'vpnid'));
 
 			//$c_client[$id['exit']] = $settings;
 			$c_client[$index] = $settings;
-	}
-}
 
 	foreach($id as $add=> $new) {
 		$ent=array();
@@ -194,6 +201,7 @@ if(isset($_POST['exit'])) {
 	header("Location: vpn_openvpn_multihop.php");
 	exit;
 }
+
 if ($act == "del") {
 	// Get the array and loop over it, use vpnid to get correct
 	// openvpn-client 
@@ -321,11 +329,11 @@ if(!empty($a_client)) {
 	$form->add($section);
 
 	$section->addInput(new Form_Checkbox(
-		'autoconf',
+		'norouting',
 		'Set Routing',
-		'Add Routing Options',
+		'Add default route',
 		'true'	
-		))->setHelp('Uncheck only if you do not want to configure routing automatically.');
+		))->setHelp('Uncheck if you do not want to set default route to exit tunnel.');
 } else {
 	$section->addInput(new Form_Select(
 		'start', //Name
@@ -343,11 +351,11 @@ if(!empty($a_client)) {
 	$form->add($section);
 
 	$section->addInput(new Form_Checkbox(
-		'autoconf',
+		'norouting',
 		'Set Routing',
-		'Add Routing Options',
+		'Add default route',
 		'true'	
-		))->setHelp('Uncheck only if you do not want to configure routing automatically');
+		))->setHelp('Uncheck if you do not want to set default route to exit tunnel.');
 }
 
 endif;
