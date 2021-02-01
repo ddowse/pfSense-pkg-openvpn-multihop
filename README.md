@@ -14,10 +14,10 @@ preperations.
 ## Installation 
 
 ```bash: 
-fetch https://github.com/ddowse/pfSense-pkg-openvpn-multihop/releases/download/alpha-v0.1_5/pfSense-pkg-openvpn-multihop-0.1_5.txz   
-pkg add pfSense-pkg-openvpn-multihop-0.1_5.txz
+fetch https://github.com/ddowse/pfSense-pkg-openvpn-multihop/releases/download/alpha-v0.1_6/pfSense-pkg-openvpn-multihop-0.1_6.txz   
+pkg add pfSense-pkg-openvpn-multihop-0.1_6.txz
 #delete
-pkg delete pfSense-pkg-openvpn-multihop-0.1_5
+pkg delete pfSense-pkg-openvpn-multihop-0.1_6
 ```
 
 # TODO: 
