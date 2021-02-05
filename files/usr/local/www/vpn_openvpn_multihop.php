@@ -23,7 +23,7 @@ require_once("guiconfig.inc");
 require_once("openvpn.inc");
 require_once("service-utils.inc");
 
-//require_once("/usr/local/pkg/openvpn_multihop.inc");
+require_once("/usr/local/pkg/openvpn-client-multihop.inc");
 
 function debug($show) {
 	print "--------------HEADER--------------\n";
@@ -33,7 +33,7 @@ function debug($show) {
 	exit;
 }
 
-global $config, $mode;
+global $config, $mode, $input_errors;
 
 if(!is_array($config['installedpackages']['openvpn-multihop'])){
 	$config['installedpackages']['openvpn-multihop']=array();
@@ -109,31 +109,31 @@ function server_addr($vpnid) {
 
 if ($_POST['save']) {
 
+if ($_POST['start'] == $_POST['exit']) {
+	$input_errors[]="Start and Exit have to be different";	
+} else { 
+
 if(isset($_POST['start'])) {
 	$id['start']=$_POST['start'];
-}
+}	
+	if(isset($_POST['exit'])) {
+		$id['exit']=$_POST['exit'];
+	} 
+		if(isset($_POST['norouting'])) {
+			$norouting = $_POST['norouting'];
+		}
+			if(isset($_POST['start'])) {
+				//$vpnid = $a_select[$id['start']]['vpnid'];
+				$vpnid = $a_id['vpnid'][$id['start']];
+				$settings = openvpn_get_settings($mode,$vpnid);
+				$settings['route_no_exec'] = "yes";
+				$server = server_addr($a_id['vpnid'][$id['exit']]);
+				$settings['custom_options'] .=  "\nroute-up \"/usr/local/etc/openvpn-multihop/addroute.sh {$server}\"\n";
+				$c_client[$id['start']] = $settings;
+		}
+	
 
 if(isset($_POST['exit'])) {
-	$id['exit']=$_POST['exit'];
-}
-
-if(isset($_POST['norouting'])) {
-	$norouting = $_POST['norouting'];
-}
-
-if(isset($_POST['start'])) {
-			//$vpnid = $a_select[$id['start']]['vpnid'];
-			$vpnid = $a_id['vpnid'][$id['start']];
-			$settings = openvpn_get_settings($mode,$vpnid);
-			$settings['route_no_exec'] = "yes";
-			$server = server_addr($a_id['vpnid'][$id['exit']]);
-			$settings['custom_options'] .=  "\nroute-up \"/usr/local/etc/openvpn-multihop/addroute.sh {$server}\"\n";
-			$c_client[$id['start']] = $settings;
-	}
-}
-
-if(isset($_POST['exit'])) {
-
 			if(count($a_client) >= 2) {
 			// Get the current exit tunnel and change settings
 			$cur_exit = end($a_client);
@@ -166,8 +166,10 @@ if(isset($_POST['exit'])) {
 			$index = array_search($vpnid,array_column($c_client,'vpnid'));
 			
 			$c_client[$index] = $settings;
-
+			
+			$savemsg="Cascade list successfully extented with new Tunnel";
 			}
+
 
 			// default, just 2 tunnels
 			$vpnid = $a_id['vpnid'][$id['exit']];
@@ -183,7 +185,6 @@ if(isset($_POST['exit'])) {
 
 			$index = array_search($vpnid,array_column($c_client,'vpnid'));
 
-			//$c_client[$id['exit']] = $settings;
 			$c_client[$index] = $settings;
 
 	foreach($id as $add=> $new) {
@@ -191,17 +192,22 @@ if(isset($_POST['exit'])) {
 		$ent['name']=$a_value[$new];
 		$ent['vpnid']=$a_id['vpnid'][$new];
 		$a_client[] = $ent;
-		//$a_client = &$config['installedpackages']['openvpn-multihop']['item'];
 		log_error("Mulithop: New Client configuration added to the List");
 	}
 
 	write_config("Written");
 
 	log_error("Mulithop:New List created");
-	header("Location: vpn_openvpn_multihop.php");
-	exit;
-}
 
+	if(!$savemsg) {
+	$savemsg="New Cascade list succesfully created" ;
+	}
+
+	multihop_stop($a_client);
+	multihop_start($a_client);
+	}
+	}
+}
 if ($act == "del") {
 	// Get the array and loop over it, use vpnid to get correct
 	// openvpn-client 
@@ -233,72 +239,60 @@ if ($act == "del") {
 	$idx++;
 	}
 }
-	unset($config['installedpackages']['openvpn-multihop']);
+	foreach ($a_client as $del) {
+	unset($config['installedpackages']['openvpn-multihop']['item']);
+	}
+	$config['installedpackages']['openvpn-multihop']['item']=array();
+	$a_client = &$config['installedpackages']['openvpn-multihop']['item'];
 	write_config("Mulithop: List deleted ");
 	log_error("Mulithop: List deleted");
-	print_info_box('Success');
-	header("Location: vpn_openvpn_multihop.php");
-	exit;
+
+	$warnmsg="Multihop Tunnel Configuration deleted";
+
 }
 
 if ($act == "stop") {
-		foreach ($a_client as $stop) {
-		$extras['vpnmode'] = "client";
-		$extras['id'] = $stop['vpnid'];
-		service_control_stop("openvpn", $extras);
-		log_error("Mulithop: All Clients stopped");
-	}
+	multihop_stop($a_client);
+	$warnmsg="All Tunnels stopped";
 
-	print_info_box('Success');
-	header("Location: vpn_openvpn_multihop.php");
-	exit;
 }
 
 if ($act == "start") {
-		foreach ($a_client as $start) {
-		$extras['vpnmode'] = "client";
-		$extras['id'] = $start['vpnid'];
-		service_control_start("openvpn", $extras);
-		// XXX - Check pfSense source code for a function
-		// that allows to get connection success information
-		// for now just wait.. and hope for the best. 
-		sleep(3);
-		log_error("Mulithop: Client started");
-	}
-
-	log_error("Mulithop: All Clients started");
+	multihop_start($a_client);
+	$savemsg="All Tunnels started";
 }
 
 if ($act == "autorestart") {
-		foreach (array_reverse($a_client) as $start) {
-		$extras['vpnmode'] = "client";
-		$extras['id'] = $start['vpnid'];
-		service_control_start("openvpn", $extras);
-		sleep(3);
-		log_error("Mulithop: Client started");
-	}
-
-	log_error("Mulithop: All Clients started");
-
+	multihop_autostart($a_client);
+	$savemsg="All Tunnels started with Autorestart";
 }
+
 
 $pgtitle = array("OpenVPN", "Client Mulithop");
 
 include("head.inc");
-
 
 if (!$savemsg) {
 	$savemsg = "";
 }
 
 if ($input_errors) {
-	print_input_errors($input_errors);
+	print_input_errors($input_errors,);
 }
 
+if ($warnmsg) {
+	print_info_box($warnmsg, 'danger');
+
+}
 if ($savemsg) {
 	print_info_box($savemsg, 'success');
+
 }
 
+if ($applymsg) {
+	
+	print_info_box($savemsg, 'success');
+}
 
 $tab_array = array();
 $tab_array[] = array(gettext("Server"), false, "vpn_openvpn_server.php");
@@ -309,13 +303,12 @@ add_package_tabs("OpenVPN", $tab_array);
 display_top_tabs($tab_array);
 
 if ($act=="new"):
-// TODO 
-if($a_value[0] == "empty") {
-	$savemsg="Nothing";
-	header("Location: vpn_openvpn_multihop.php");
-	print_info_box($savemsg, 'warning',"close");
-}
-	$form = new Form();
+
+if ($a_value[0] == "empty") {
+	$warnmsg="No more OpenVPN Clients available";
+	print_info_box($warnmsg, 'warning');
+} else  {
+$form = new Form();
 
 $section = new Form_Section('Add Client');
 
@@ -356,12 +349,12 @@ if(!empty($a_client)) {
 		'Add default route',
 		'true'	
 		))->setHelp('Uncheck if you do not want to set default route to exit tunnel.');
+	} 
 }
-
 endif;
 
 print($form);
-//END PHP
+
 ?>
 
 <div class="panel panel-default">
@@ -402,31 +395,37 @@ print($form);
 		</table>
 	</div>
 </div>
+<!--
 <nav class="action-buttons">
 	<a href="vpn_openvpn_multihop.php?act=new" class="btn btn-primary btn-sm btn-success">
 		<i class="fa fa-plus icon-embed-btn"></i>
 		<?=gettext("Add")?>
 	</a>
 </nav>
-
-<nav class="action-buttons">
-	<a href="vpn_openvpn_multihop.php?act=start" class="btn btn-sm btn-success">
-		<i class="fa fa-play-circle icon-embed-btn"></i>
-		<?=gettext("Start")?>
-	</a>
-<!--	<a href="vpn_openvpn_multihop.php?act=autorestart" class="btn btn-sm btn-success">
-		<i class="fa fa-play-circle icon-embed-btn"></i>
-		<?=gettext("Autorestart")?>
-	</a>
 -->
-	<a href="vpn_openvpn_multihop.php?act=stop" class="btn btn-sm btn-success">
-		<i class="text-danger fa fa-times-circle icon-embed-btn"></i>
-		<?=gettext("Stop")?>
-	</a>
-	<a href="vpn_openvpn_multihop.php?act=del" class="btn btn-danger btn-sm">
+<form action="vpn_openvpn_multihop.php" method="post">
+<nav class="action-buttons">
+<button class="btn btn-success btn-sm" type="submit" name="act" value="new">
+	<i class="fa fa-plus icon-embed-btn"> </i>
+	Add
+</button>
+		<button class="btn btn-danger btn-sm" type="submit" name="act" value="del">
 		<i class="text-danger fa fa-trash icon-embed-btn"></i>
-		<?=gettext("Delete")?>
-	</a>
+			Delete
+		</button>
+		<button class="btn btn-success btn-sm" type="submit" name="act" value="start">
+			<i class="fa fa-play-circle icon-embed-btn"> </i>
+			Start
+		</button>
+		<button class="btn btn-success btn-sm" type="submit" name="act" value="autostart">
+			<i class="fa fa-retweet icon-embed-btn"> </i>
+			Autostart
+		</button>
+		<button class="btn btn-danger btn-sm" type="submit" name="act" value="stop">
+		<i class="text-danger fa fa-times-circle icon-embed-btn"></i>
+			Stop
+		</button>
 </nav>
+</form>
 
 <?php include("foot.inc");?>

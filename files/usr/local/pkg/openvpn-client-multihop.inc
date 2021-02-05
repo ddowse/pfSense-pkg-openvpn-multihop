@@ -22,6 +22,41 @@
 require_once("openvpn.inc");
 require_once("service-utils.inc");
 
+function multihop_stop(&$a_client) {
+	foreach ($a_client as $stop) {
+		$extras['vpnmode'] = "client";
+		$extras['id'] = $stop['vpnid'];
+		service_control_stop("openvpn", $extras);
+		log_error("Mulithop: All Clients stopped");
+		}
+}
+
+function multihop_start(&$a_client){
+		foreach ($a_client as $start) {
+		$extras['vpnmode'] = "client";
+		$extras['id'] = $start['vpnid'];
+		service_control_start("openvpn", $extras);
+		// XXX - Check pfSense source code for a function
+		// that allows to get easy way to connection success 
+		// information for now just wait.. and hope for the best. 
+		sleep(2);
+		log_error("Mulithop: Client started");
+	}
+}
+
+function multihop_autostart(&$a_client){
+		foreach ($a_client as $start) {
+		$extras['vpnmode'] = "client";
+		$extras['id'] = $start['vpnid'];
+		service_control_start("openvpn", $extras);
+		// XXX - Check pfSense source code for a function
+		// that allows to get easy way to connection success 
+		// information for now just wait.. and hope for the best. 
+		sleep(2);
+		log_error("Mulithop: Client started with Autorestart");
+	}
+	
+}
 
 function multihop_deinstall() {
 	global $c_client, $a_client, $config;
