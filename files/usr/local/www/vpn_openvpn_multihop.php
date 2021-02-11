@@ -55,7 +55,7 @@ $c_client = &$config['openvpn']['openvpn-client'];
 // returns all enabled ovpn clients 
 $a_active = openvpn_get_active_clients();
 
-// Build the select list 
+// Build the select list Note: This is for sure a mess, i guess.
 
 // Get all the VPNID's that are already in multihop list
 if(empty($a_client)) {
@@ -149,80 +149,77 @@ if(isset($_POST['start'])) {
 	
 
 if(isset($_POST['exit'])) {
-			if(count($a_client) >= 2) {
-			// Get the current exit tunnel and change settings
-			$cur_exit = end($a_client);
-			$cur_vpnid = $cur_exit['vpnid'];
-			$vpnid = $a_id['vpnid'][$id['exit']];
-			$settings = openvpn_get_settings($mode,$cur_vpnid);
-
-			$settings['route_no_exec'] = "yes";
-			
-			// set route-up command with ip of the new exit
-			$server = server_addr($vpnid);
-			$settings['custom_options'] .=  "\nroute-up \"/usr/local/etc/openvpn-multihop/addroute.sh {$server}\"\n";
-		
-			// get the correct index of the openvpn-client array in config.xml
-			// so we can write the new settings to it
-			$cur_index = array_search($cur_vpnid,array_column($c_client,'vpnid'));
+	if(count($a_client) >= 2) {
+		// Get the current exit tunnel and change settings
+		$cur_exit = end($a_client);
+		$cur_vpnid = $cur_exit['vpnid'];
+		$vpnid = $a_id['vpnid'][$id['exit']];
+		$settings = openvpn_get_settings($mode,$cur_vpnid);
 	
-			// save the new settings 
-			$c_client[$cur_index] = $settings;
-			
-			// Add NEW exit
-			$settings = openvpn_get_settings($mode,$vpnid);
-
+		$settings['route_no_exec'] = "yes";
+		
+		// set route-up command with ip of the new exit
+		$server = server_addr($vpnid);
+		$settings['custom_options'] .=  "\nroute-up \"/usr/local/etc/openvpn-multihop/addroute.sh {$server}\"\n";
+	
+		// get the correct index of the openvpn-client array in config.xml
+		// so we can write the new settings to it
+		$cur_index = array_search($cur_vpnid,array_column($c_client,'vpnid'));
+	
+		// save the new settings 
+		$c_client[$cur_index] = $settings;
+		
+		// Add NEW exit
+		$settings = openvpn_get_settings($mode,$vpnid);
+	
 			if ($norouting == "yes") {
 				unset($settings['route_no_exec']);
 			} else {
 				$settings['route_no_exec'] = "yes";
 			}
-
-			$index = array_search($vpnid,array_column($c_client,'vpnid'));
-			
-			$c_client[$index] = $settings;
-			
-			$savemsg="Cascade list successfully extented with new Tunnel";
-			if(!isset($applymsg)) {
-				$applymsg="Click Apply Button to restart with new configuration";
-				}
-			}
-
-			// default, just 2 tunnels
-			$vpnid = $a_id['vpnid'][$id['exit']];
-
-			$settings = openvpn_get_settings($mode,$vpnid);
-
-			// In case one does not want to default route everything to the tunnel
-			if ($norouting == "yes") {
-				unset($settings['route_no_exec']);
-			} else {
-				$settings['route_no_exec'] = "yes";
-			}
-
-			$index = array_search($vpnid,array_column($c_client,'vpnid'));
-
-			$c_client[$index] = $settings;
-
-	foreach($id as $add=> $new) {
-		$ent=array();
-		$ent['name']=$a_value[$new];
-		$ent['vpnid']=$a_id['vpnid'][$new];
-		$ent['mgmt'] = "client{$a_id['vpnid'][$new]}";
-		$a_client[] = $ent;
-		log_error("Mulithop: New Client configuration added to the List");
+	
+		$index = array_search($vpnid,array_column($c_client,'vpnid'));
+		
+		$c_client[$index] = $settings;
+		
+		$savemsg="Cascade list successfully extented with new Tunnel";
+	
+		$applymsg="Click the Apply button to stop and restart with new configuration";
 	}
 
+// default, just 2 tunnels
+$vpnid = $a_id['vpnid'][$id['exit']];
 
+$settings = openvpn_get_settings($mode,$vpnid);
+
+// In case one does not want to default route everything to the tunnel
+if ($norouting == "yes") {
+	unset($settings['route_no_exec']);
+} else {
+	$settings['route_no_exec'] = "yes";
+}
+
+$index = array_search($vpnid,array_column($c_client,'vpnid'));
+
+$c_client[$index] = $settings;
+
+foreach($id as $add=> $new) {
+	$ent=array();
+	$ent['name']=$a_value[$new];
+	$ent['vpnid']=$a_id['vpnid'][$new];
+	$ent['mgmt'] = "client{$a_id['vpnid'][$new]}";
+	$a_client[] = $ent;
+	log_error("Mulithop: New client configuration added to the List");
+}
 	write_config("Written");
 
-	log_error("Mulithop:New List created");
+	log_error("Mulithop: New list created");
 
 	if(!$savemsg) {
-	$savemsg="New Cascade list succesfully created" ;
+	$savemsg="New cascade list succesfully created" ;
 
 	if(!isset($applymsg)){
-		$applymsg="The changes must be applied for them to take effect.";
+		$applymsg="The Changes must be applied for them to take effect.";
 		}
 	}
 
@@ -232,7 +229,8 @@ if(isset($_POST['exit'])) {
 if ($act == "del") {
 	// Get the array and loop over it, use vpnid to get correct
 	// openvpn-client 
-
+	multihop_stop($a_client,$g);
+	
 	foreach($a_client as $item) {
 		$vpnid = $item['vpnid'];
 		$settings = openvpn_get_settings($mode,$vpnid);
@@ -268,7 +266,7 @@ if ($act == "del") {
 	write_config("Mulithop: List deleted ");
 	log_error("Mulithop: List deleted");
 
-	$warnmsg="Multihop Tunnel Configuration deleted";
+	$warnmsg="Multihop: Cascade Tunnel Configuration deleted";
 
 }
 
@@ -294,7 +292,6 @@ if ($act == "start") {
 }
 
 if($_POST['apply']) {
-	multihop_start($a_client,$g);
 	if (!empty(multihop_start($a_client,$g))) {
 		$ret = multihop_start($a_client,$g);
 	$warnmsg="{$ret}";

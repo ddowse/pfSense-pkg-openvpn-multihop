@@ -49,6 +49,7 @@ function multihop_start(&$a_client,&$g){
 			$socket = "unix://{$g['openvpn_base']}/{$client['mgmt']}/sock";
 			$status = openvpn_get_client_status($client, $socket);
 
+			sleep(5);
 			service_control_start("openvpn", $extras);
 	
 			$timeout = 10;	
@@ -60,19 +61,18 @@ function multihop_start(&$a_client,&$g){
 				sleep(1);
 
 				$timeout--;
-	
+			}	
 				if($timeout == 0 ) {
 					multihop_stop($a_client,$g);
 					log_error("Mulithop: ERROR - client {$client['name']} timed out to start");
 					return "Couldn't start client: {$client['name']}. Check your OpenVPN logfile.";	
 					exit;
 				}	
-			}	
+				
 		log_error("Mulithop: client {$client['name']} started");
 
 		// While testing it has been proven that it is better to wait a couple
 		// of seconds before starting the next tunnel
-		sleep(3);
 	}
 log_error("Multihop: all clients up");
 }
