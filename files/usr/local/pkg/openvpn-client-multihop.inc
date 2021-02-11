@@ -23,87 +23,58 @@ require_once("globals.inc");
 require_once("openvpn.inc");
 require_once("service-utils.inc");
 
-global $g;
+global $g, $a_client;
 
 function multihop_stop(&$a_client,&$g) {
 	foreach (array_reverse($a_client) as $client) {
+		
 		$extras['vpnmode'] = "client";
 		$extras['id'] = $client['vpnid'];
-
+		// We could write some code here to check if the tunnels are really
+		// up or not. For not just asume they are. 
 		service_control_stop("openvpn", $extras);
-
-		/*
-		$socket = "unix://{$g['openvpn_base']}/{$client['mgmt']}/sock";
-		$status = openvpn_get_client_status($client, $socket);
-
-		
-		if(!empty($status['status'])) {
-			service_control_stop("openvpn", $extras);
-			while($status['status'] != "down") {
-				$status = openvpn_get_client_status($client, $socket);
-				sleep(1);
-			}	
+		log_error("Mulithop: {$client['name']} stopped");
 		}
-		 */
-		/*
-		if(!empty($status['status']))	{
-			for ($i=0;$i<3;$i++) {
-				$status = openvpn_get_client_status($client, $socket);
-				$client['status'] = $status['status']; 
-				if($client['status'] == "down") { break; }
-					if ($i == 5) {
-						return $client['name'];	
-					}
-			}
-		*/
-//		return "Nothing to do!";
-		log_error("Mulithop: All Clients stopped");
-		}
+		log_error("Mulithop: all clients stopped");
 	}
 
 function multihop_start(&$a_client,&$g){
-		foreach ($a_client as $client) {
-		$extras['vpnmode'] = "client";
-		$extras['id'] = $client['vpnid'];
+			multihop_stop($a_client,$g);
+			foreach ($a_client as $client) {
+	
+			$extras['vpnmode'] = "client";
+			$extras['id'] = $client['vpnid'];
 
-		$socket = "unix://{$g['openvpn_base']}/{$client['mgmt']}/sock";
-		$status = openvpn_get_client_status($client, $socket);
-
-		service_control_start("openvpn", $extras);
-
-
-
-		$timeout = 10;	
-		while($status['status'] != "up" && $timeout != 0) {
+			// Connect to OpenVPN Management Socket and get current status	
+			$socket = "unix://{$g['openvpn_base']}/{$client['mgmt']}/sock";
 			$status = openvpn_get_client_status($client, $socket);
-			sleep(1);
-			$timeout--;
-			log_error("Mulithop: Client {$status['status']} started");
-		}	
-		
-		if($timeout == 0 ) {
-		multihop_stop($a_client,$g);
-		return "Couldn't start Tunnel: {$client['name']}. Check your OpenVPN logfile.";	
-		log_error("Mulithop: Client {$client['name']} not started");
-		exit;
-		}
-	/*
-		print_r($status);
-		exit;
-		for ($i=0;$i<5;$i++) {
-			sleep(1);
-			$status = openvpn_get_client_status($client, $socket);
-			$client['status'] = $status['status']; 
-			if($client['status'] == "up") { break; }
-				if ($i == 5) {
-					return $client['name'];	
-					break;
-				}
-			}
-	 */
-		
-		log_error("Mulithop: Client {$client['name']} started");
-		}
+
+			service_control_start("openvpn", $extras);
+	
+			$timeout = 10;	
+	
+			while($status['status'] != "up" && $timeout != 0) {
+				// Repeat Statuscheck 
+				$status = openvpn_get_client_status($client, $socket);
+
+				sleep(1);
+
+				$timeout--;
+	
+				if($timeout == 0 ) {
+					multihop_stop($a_client,$g);
+					log_error("Mulithop: ERROR - client {$client['name']} timed out to start");
+					return "Couldn't start client: {$client['name']}. Check your OpenVPN logfile.";	
+					exit;
+				}	
+			}	
+		log_error("Mulithop: client {$client['name']} started");
+
+		// While testing it has been proven that it is better to wait a couple
+		// of seconds before starting the next tunnel
+		sleep(3);
+	}
+log_error("Multihop: all clients up");
 }
 
 function multihop_autostart(&$a_client){

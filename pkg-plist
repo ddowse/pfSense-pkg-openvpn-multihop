@@ -1,3 +1,4 @@
+pkg/openvpn-client-multihop.inc
 pkg/openvpn-client-multihop.xml
 etc/openvpn-multihop/addroute.sh
 www/vpn_openvpn_multihop.php

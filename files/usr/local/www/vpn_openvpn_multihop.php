@@ -33,7 +33,7 @@ function debug($show) {
 	exit;
 }
 
-global $config, $mode, $input_errors;
+global $g, $config, $mode, $input_errors;
 
 if(!is_array($config['installedpackages']['openvpn-multihop'])){
 	$config['installedpackages']['openvpn-multihop']=array();
@@ -108,6 +108,19 @@ function server_addr($vpnid) {
 		return $server;	
 }
 
+// Check the status of the connection not just if the ovpn daemon
+// is running
+function get_status(&$client,&$g) {
+	$socket = "unix://{$g['openvpn_base']}/{$client['mgmt']}/sock";
+	$status = openvpn_get_client_status($client, $socket);
+	if(!array_key_exists("status",$status)) {
+		return 0;
+	} else {
+		return 1;
+	}
+}
+
+
 if ($_POST['save']) {
 
 if ($_POST['start'] == $_POST['exit']) {
@@ -170,9 +183,10 @@ if(isset($_POST['exit'])) {
 			$c_client[$index] = $settings;
 			
 			$savemsg="Cascade list successfully extented with new Tunnel";
-			$applymsg="Click Aplly Button to restart with new configuration";
+			if(!isset($applymsg)) {
+				$applymsg="Click Apply Button to restart with new configuration";
+				}
 			}
-
 
 			// default, just 2 tunnels
 			$vpnid = $a_id['vpnid'][$id['exit']];
@@ -206,7 +220,10 @@ if(isset($_POST['exit'])) {
 
 	if(!$savemsg) {
 	$savemsg="New Cascade list succesfully created" ;
-	$applymsg="The changes must be applied for them to take effect.";
+
+	if(!isset($applymsg)){
+		$applymsg="The changes must be applied for them to take effect.";
+		}
 	}
 
 	}
@@ -257,16 +274,17 @@ if ($act == "del") {
 
 if ($act == "stop") {
 	multihop_stop($a_client,$g);
-	if (!empty(multihop_stop($a_client,$g))) {
+	$warnmsg="All Tunnels stopped";
+/*	if (!empty(multihop_stop($a_client,$g))) {
 		$ret = multihop_stop($a_client,$g);
 	$warnmsg="{$ret}";
 	} else {
 	$warnmsg="All Tunnels stopped";
 	}
+ */
 }
 
 if ($act == "start") {
-	multihop_start($a_client,$g);
 	if (!empty(multihop_start($a_client,$g))) {
 		$ret = multihop_start($a_client,$g);
 	$warnmsg="{$ret}";
@@ -276,7 +294,6 @@ if ($act == "start") {
 }
 
 if($_POST['apply']) {
-	multihop_stop($a_client,$g);
 	multihop_start($a_client,$g);
 	if (!empty(multihop_start($a_client,$g))) {
 		$ret = multihop_start($a_client,$g);
@@ -314,8 +331,7 @@ if ($savemsg) {
 }
 
 if ($applymsg) {
-	print_apply_box(gettext($applymsg) . '<br />' .
-					gettext('The changes must be applied for them to take effect.'));
+	print_apply_box(gettext($applymsg));
 }
 
 $tab_array = array();
@@ -408,8 +424,8 @@ print($form);
 						<?=htmlspecialchars($value['name'])?>
 					</td>
 					<td>
-						<?php $ssvc = find_service_by_openvpn_vpnid($value['vpnid']); ?>
-						<?= get_service_status_icon($ssvc, false, true); ?>
+						<?= (get_status($value,$g)) ? '<i class="fa fa-check-circle icon-embed-btn" style="color:green"></i>' 
+						: '<i class="fa fa-times-circle icon-embed-btn" style="color:red"></i>'; ?>
 					</td>
 				</tr>
 <?php
