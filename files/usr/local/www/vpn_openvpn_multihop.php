@@ -66,8 +66,8 @@ if(empty($a_client)) {
 		$a_id['vpnid'][]=$settings['vpnid'];
 	}
 } else {
-foreach($a_client as $item){
-		$a_isconf[]=$item['vpnid'];
+foreach($a_client as $client){
+		$a_isconf[]=$client['vpnid'];
 	}
 // Get all the VPNID's of active clients
 foreach($a_active as $client){
@@ -92,6 +92,7 @@ if(!empty($a_select)) {
 	$a_value[]='empty';
 }
 }
+
 $act = $_REQUEST['act'];
 
 if ($act == "new") {
@@ -130,6 +131,7 @@ if(isset($_POST['start'])) {
 				$server = server_addr($a_id['vpnid'][$id['exit']]);
 				$settings['custom_options'] .=  "\nroute-up \"/usr/local/etc/openvpn-multihop/addroute.sh {$server}\"\n";
 				$c_client[$id['start']] = $settings;
+				
 		}
 	
 
@@ -168,6 +170,7 @@ if(isset($_POST['exit'])) {
 			$c_client[$index] = $settings;
 			
 			$savemsg="Cascade list successfully extented with new Tunnel";
+			$applymsg="Click Aplly Button to restart with new configuration";
 			}
 
 
@@ -191,9 +194,11 @@ if(isset($_POST['exit'])) {
 		$ent=array();
 		$ent['name']=$a_value[$new];
 		$ent['vpnid']=$a_id['vpnid'][$new];
+		$ent['mgmt'] = "client{$a_id['vpnid'][$new]}";
 		$a_client[] = $ent;
 		log_error("Mulithop: New Client configuration added to the List");
 	}
+
 
 	write_config("Written");
 
@@ -201,10 +206,9 @@ if(isset($_POST['exit'])) {
 
 	if(!$savemsg) {
 	$savemsg="New Cascade list succesfully created" ;
+	$applymsg="The changes must be applied for them to take effect.";
 	}
 
-	multihop_stop($a_client);
-	multihop_start($a_client);
 	}
 	}
 }
@@ -252,14 +256,34 @@ if ($act == "del") {
 }
 
 if ($act == "stop") {
-	multihop_stop($a_client);
+	multihop_stop($a_client,$g);
+	if (!empty(multihop_stop($a_client,$g))) {
+		$ret = multihop_stop($a_client,$g);
+	$warnmsg="{$ret}";
+	} else {
 	$warnmsg="All Tunnels stopped";
-
+	}
 }
 
 if ($act == "start") {
-	multihop_start($a_client);
-	$savemsg="All Tunnels started";
+	multihop_start($a_client,$g);
+	if (!empty(multihop_start($a_client,$g))) {
+		$ret = multihop_start($a_client,$g);
+	$warnmsg="{$ret}";
+	} else {
+	$savemsg ="All Tunnels Started";
+	}
+}
+
+if($_POST['apply']) {
+	multihop_stop($a_client,$g);
+	multihop_start($a_client,$g);
+	if (!empty(multihop_start($a_client,$g))) {
+		$ret = multihop_start($a_client,$g);
+	$warnmsg="{$ret}";
+	} else {
+	$savemsg ="All Tunnels Started";
+	}
 }
 
 if ($act == "autorestart") {
@@ -290,8 +314,8 @@ if ($savemsg) {
 }
 
 if ($applymsg) {
-	
-	print_info_box($savemsg, 'success');
+	print_apply_box(gettext($applymsg) . '<br />' .
+					gettext('The changes must be applied for them to take effect.'));
 }
 
 $tab_array = array();
@@ -377,6 +401,7 @@ print($form);
 ?>
 				<tr>
 					<td>
+						<i class="text fa fa-arrow-down"></i>
 						<?=htmlspecialchars($i)?>
 					</td>
 					<td>
@@ -419,7 +444,7 @@ print($form);
 		</button>
 		<button class="btn btn-success btn-sm" type="submit" name="act" value="autostart">
 			<i class="fa fa-retweet icon-embed-btn"> </i>
-			Autostart
+			Autorestart
 		</button>
 		<button class="btn btn-danger btn-sm" type="submit" name="act" value="stop">
 		<i class="text-danger fa fa-times-circle icon-embed-btn"></i>
