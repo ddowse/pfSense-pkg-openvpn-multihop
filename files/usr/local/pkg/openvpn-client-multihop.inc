@@ -39,9 +39,10 @@ function multihop_stop(&$a_client,&$g) {
 	}
 
 function multihop_start(&$a_client,&$g){
-			multihop_stop($a_client,$g);
+			//multihop_stop($a_client,$g);
+
 			foreach ($a_client as $client) {
-	
+			unset($up);	
 			$extras['vpnmode'] = "client";
 			$extras['id'] = $client['vpnid'];
 
@@ -50,46 +51,71 @@ function multihop_start(&$a_client,&$g){
 			$status = openvpn_get_client_status($client, $socket);
 
 			sleep(5);
+			log_error("Starting {$client['name']}");
 			service_control_start("openvpn", $extras);
 	
-			$timeout = 10;	
-	
-			while($status['status'] != "up" && $timeout != 0) {
-				// Repeat Statuscheck 
-				$status = openvpn_get_client_status($client, $socket);
+			for($timeout=0;$timeout <= 5; $timeout++) {
+			log_error($timeout);	
+			$status = openvpn_get_client_status($client, $socket);
+			sleep(1);
+				if($status['status'] == "up") { 
+					log_error("Mulithop: client {$client['name']} started"); 
+					$up=1;
+					break;
+				}
+			}
+			if(isset($up)) { 
+				continue; 
+			} else {
+			log_error("Error starting {$client['name']}"); 
+			multihop_stop($a_client,$g);
+			return "Couldn't start client: {$client['name']}. Check your OpenVPN logfile.";
+			break;	
+			}
+			}
+			log_error("Multihop: all clients up");
+			}
 
-				sleep(1);
 
-				$timeout--;
-			}	
-				if($timeout == 0 ) {
-					multihop_stop($a_client,$g);
-					log_error("Mulithop: ERROR - client {$client['name']} timed out to start");
-					return "Couldn't start client: {$client['name']}. Check your OpenVPN logfile.";	
-					exit;
-				}	
-				
-		log_error("Mulithop: client {$client['name']} started");
+function multihop_autostart(&$a_client,&$g,&$pidfile){
 
-		// While testing it has been proven that it is better to wait a couple
-		// of seconds before starting the next tunnel
-	}
-log_error("Multihop: all clients up");
+$pid = pcntl_fork();
+if($pid == -1){
+	log_error("Multihop: ERROR - could not daemonize process");
+	return 1; //error
 }
+else if($pid){
+	file_put_contents($pidfile, "{$pid}");
+	return 0; //success
+} else {
 
-function multihop_autostart(&$a_client){
-		foreach ($a_client as $start) {
-		$extras['vpnmode'] = "client";
-		$extras['id'] = $start['vpnid'];
-		service_control_start("openvpn", $extras);
-		// XXX - Check pfSense source code for a function
-		// that allows to get easy way to connection success 
-		// information for now just wait.. and hope for the best. 
-		sleep(2);
+//the main process
+
+while(file_exists($pidfile)){
+	foreach ($a_client as $start) {
+	$extras['vpnmode'] = "client";
+	$extras['id'] = $start['vpnid'];
+	service_control_start("openvpn", $extras);
+	
+	$socket = "unix://{$g['openvpn_base']}/{$client['mgmt']}/sock";
+	$status = openvpn_get_client_status($client, $socket);
+
+	while($status['status'] != "up" && $timeout != 0) {
+	// Repeat Statuscheck 
+	$status = openvpn_get_client_status($client, $socket);
+	sleep(1);
+
+	$timeout--;
+			}	
+
+	file_put_contents($log, 'Running...', FILE_APPEND);
+	sleep(1);
+	}//end while
+}
+}
 		log_error("Mulithop: Client started with Autorestart");
 	}
 	
-}
 
 function multihop_deinstall() {
 	global $c_client, $a_client, $config;

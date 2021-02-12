@@ -25,13 +25,6 @@ require_once("service-utils.inc");
 
 require_once("/usr/local/pkg/openvpn-client-multihop.inc");
 
-function debug($show) {
-	print "--------------HEADER--------------\n";
-	print_r($show);
-	print "--------------BOTTOM--------------\n";
-
-	exit;
-}
 
 global $g, $config, $mode, $input_errors;
 
@@ -55,7 +48,8 @@ $c_client = &$config['openvpn']['openvpn-client'];
 // returns all enabled ovpn clients 
 $a_active = openvpn_get_active_clients();
 
-// Build the select list Note: This is for sure a mess, i guess.
+// LIST 
+// XXX Maybe find cleaner way to do that
 
 // Get all the VPNID's that are already in multihop list
 if(empty($a_client)) {
@@ -93,6 +87,7 @@ if(!empty($a_select)) {
 }
 }
 
+
 $act = $_REQUEST['act'];
 
 if ($act == "new") {
@@ -100,7 +95,7 @@ if ($act == "new") {
 }
 
 
-// returns the key of ['server_addr'] this is the to be used
+// Returns the key of ['server_addr'] this is the to be used
 // to set the route-up command
 function server_addr($vpnid) {
 		$settings = openvpn_get_settings($mode,$vpnid);
@@ -108,12 +103,11 @@ function server_addr($vpnid) {
 		return $server;	
 }
 
-// Check the status of the connection not just if the ovpn daemon
-// is running
+// Check the status of the connection trough opnvpn socket
 function get_status(&$client,&$g) {
 	$socket = "unix://{$g['openvpn_base']}/{$client['mgmt']}/sock";
 	$status = openvpn_get_client_status($client, $socket);
-	if(!array_key_exists("status",$status)) {
+	if($status['status'] != "up" ) {
 		return 0;
 	} else {
 		return 1;
@@ -124,7 +118,7 @@ function get_status(&$client,&$g) {
 if ($_POST['save']) {
 
 if ($_POST['start'] == $_POST['exit']) {
-	$input_errors[]="Start and Exit have to be different";	
+	$input_errors[]="Do not use identical clients";	
 } else { 
 
 if(isset($_POST['start'])) {
@@ -182,9 +176,9 @@ if(isset($_POST['exit'])) {
 		
 		$c_client[$index] = $settings;
 		
-		$savemsg="Cascade list successfully extented with new Tunnel";
+		$savemsg="New client added";
 	
-		$applymsg="Click the Apply button to stop and restart with new configuration";
+		$applymsg="Click the Apply button to stop all current clients and to restart with new configuration";
 	}
 
 // default, just 2 tunnels
@@ -209,14 +203,14 @@ foreach($id as $add=> $new) {
 	$ent['vpnid']=$a_id['vpnid'][$new];
 	$ent['mgmt'] = "client{$a_id['vpnid'][$new]}";
 	$a_client[] = $ent;
-	log_error("Mulithop: New client configuration added to the List");
+	log_error("Mulithop: New client added to configuration");
 }
 	write_config("Written");
 
 	log_error("Mulithop: New list created");
 
 	if(!$savemsg) {
-	$savemsg="New cascade list succesfully created" ;
+	$savemsg="New Multihop list created" ;
 
 	if(!isset($applymsg)){
 		$applymsg="The Changes must be applied for them to take effect.";
@@ -252,7 +246,7 @@ if ($act == "del") {
 			$settings['custom_options'] = $l_custom;
 			unset($settings['route_no_exec']);
 			$c_client[$index] = $settings;
-			log_error("Mulithop: Route CMD deleted");
+			log_error("Mulithop: routing options removed");
 			break;
 		}
 	$idx++;
@@ -263,46 +257,39 @@ if ($act == "del") {
 	}
 	$config['installedpackages']['openvpn-multihop']['item']=array();
 	$a_client = &$config['installedpackages']['openvpn-multihop']['item'];
-	write_config("Mulithop: List deleted ");
-	log_error("Mulithop: List deleted");
+	write_config("Mulithop: list deleted ");
+	log_error("Mulithop: list deleted");
 
-	$warnmsg="Multihop: Cascade Tunnel Configuration deleted";
+	$warnmsg="Multihop: Configuration deleted";
 
 }
 
 if ($act == "stop") {
 	multihop_stop($a_client,$g);
-	$warnmsg="All Tunnels stopped";
-/*	if (!empty(multihop_stop($a_client,$g))) {
-		$ret = multihop_stop($a_client,$g);
-	$warnmsg="{$ret}";
-	} else {
-	$warnmsg="All Tunnels stopped";
-	}
- */
+	$warnmsg="All tunnels down";
 }
 
 if ($act == "start") {
 	if (!empty(multihop_start($a_client,$g))) {
-		$ret = multihop_start($a_client,$g);
 	$warnmsg="{$ret}";
 	} else {
-	$savemsg ="All Tunnels Started";
+	$savemsg ="All tunnels started";
 	}
 }
 
 if($_POST['apply']) {
-	if (!empty(multihop_start($a_client,$g))) {
-		$ret = multihop_start($a_client,$g);
+	if (!empty($ret = multihop_start($a_client,$g))) {
 	$warnmsg="{$ret}";
 	} else {
-	$savemsg ="All Tunnels Started";
+	$savemsg ="All tunnels started";
 	}
 }
 
 if ($act == "autorestart") {
-	multihop_autostart($a_client);
-	$savemsg="All Tunnels started with Autorestart";
+	$pidfile="/var/run/multihop.pid";
+	if(!empty($ret= multihop_autostart($a_client,$g,$pidfile))) {
+	};
+	$applymsg="All tunnels will be started with auto restart";
 }
 
 
@@ -363,21 +350,21 @@ if(!empty($a_client)) {
 		'Set Routing',
 		'Add default route',
 		'true'	
-		))->setHelp('Uncheck if you do not want to set default route to exit tunnel.');
+		))->setHelp('Uncheck if you *do not* want to set default route to exit tunnel.');
 } else {
 	$section->addInput(new Form_Select(
 		'start', //Name
 		'Start', //Description Asterik Is Inderline
 		$a_value['description'],
 		$a_value
-		))->setHelp('This Client will be the first Tunnel');
+		))->setHelp('This client will be the first tunnel');
 
 	$section->addInput(new Form_Select(
 		'exit', //Name
 		'Exit', //Description Asterik Is Inderline
 		$a_value['description'],
 		$a_value
-		))->setHelp('This Client will the Exit Tunnel');
+		))->setHelp('This client will the exit tunnel');
 	$form->add($section);
 
 	$section->addInput(new Form_Checkbox(
@@ -385,7 +372,7 @@ if(!empty($a_client)) {
 		'Set Routing',
 		'Add default route',
 		'true'	
-		))->setHelp('Uncheck if you do not want to set default route to exit tunnel.');
+		))->setHelp('Uncheck if you *do not* want to set default route to exit tunnel.');
 	} 
 }
 endif;
@@ -401,8 +388,8 @@ print($form);
 			<thead>
 				<tr>
 					<!-- <th><?//=gettext("VPN ID")?></th> -->
-					<th><?=gettext("Number")?></th>
-					<th><?=gettext("Description")?></th>
+					<th><?=gettext("Start No.")?></th>
+					<th><?=gettext("Name")?></th>
 					<th><?=gettext("Status"); ?></th>
 				</tr>
 			</thead>
@@ -433,14 +420,6 @@ print($form);
 		</table>
 	</div>
 </div>
-<!--
-<nav class="action-buttons">
-	<a href="vpn_openvpn_multihop.php?act=new" class="btn btn-primary btn-sm btn-success">
-		<i class="fa fa-plus icon-embed-btn"></i>
-		<?=gettext("Add")?>
-	</a>
-</nav>
--->
 <form action="vpn_openvpn_multihop.php" method="post">
 <nav class="action-buttons">
 <button class="btn btn-success btn-sm" type="submit" name="act" value="new">
