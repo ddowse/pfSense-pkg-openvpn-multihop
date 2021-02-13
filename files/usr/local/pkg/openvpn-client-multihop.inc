@@ -125,7 +125,6 @@ function multihop_keepalive(&$a_client,&$g){
 			}
 			$notice = "Multihop: {$client['name']} down, restarting Cascade";
 			file_notice( $id, $notice, $category = "OpenVPN", $url = "",  $priority = 1, $local_only = true );
-			log_error("Multihop: While loop");	
 			multihop_start($a_client,$g);
 		}
 	return 0; //success
