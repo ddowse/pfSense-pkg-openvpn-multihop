@@ -130,37 +130,6 @@ function multihop_keepalive(&$a_client,&$g){
 		}
 	return 0; //success
 }
-/*
-		} else {
-	}
-//the main process
-
-while(file_exists($pidfile)){
-	foreach ($a_client as $start) {
-	$extras['vpnmode'] = "client";
-	$extras['id'] = $start['vpnid'];
-	service_control_start("openvpn", $extras);
-	
-	$socket = "unix://{$g['openvpn_base']}/{$client['mgmt']}/sock";
-	$status = openvpn_get_client_status($client, $socket);
-
-	while($status['status'] != "up" && $timeout != 0) {
-	// Repeat Statuscheck 
-	$status = openvpn_get_client_status($client, $socket);
-	sleep(1);
-
-	$timeout--;
-			}	
-
-	file_put_contents($log, 'Running...', FILE_APPEND);
-	sleep(1);
-	}//end while
-}
-}
-		log_error("Mulithop: Client started with Autorestart");
-	}
-	
- */
 function multihop_deinstall() {
 	global $c_client, $a_client, $config;
 
