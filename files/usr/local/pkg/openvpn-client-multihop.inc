@@ -25,13 +25,20 @@ require_once("service-utils.inc");
 
 global $g, $a_client;
 
+
 function multihop_stop(&$a_client,&$g) {
+	
+	$pidfile="/var/run/multihop.pid";
+	$oldpid=file_get_contents($pidfile);
+	if(file_exists($pidfile)) {
+	posix_kill($oldpid,9);	
+	log_error("Multihop: Killing old Process {$oldpid}");
+	}
+
 	foreach (array_reverse($a_client) as $client) {
 		
 		$extras['vpnmode'] = "client";
 		$extras['id'] = $client['vpnid'];
-		// We could write some code here to check if the tunnels are really
-		// up or not. For not just asume they are. 
 		service_control_stop("openvpn", $extras);
 		log_error("Mulithop: {$client['name']} stopped");
 		}
@@ -39,8 +46,7 @@ function multihop_stop(&$a_client,&$g) {
 	}
 
 function multihop_start(&$a_client,&$g){
-			//multihop_stop($a_client,$g);
-
+//			multihop_stop($a_client,$g);
 			foreach ($a_client as $client) {
 			unset($up);	
 			$extras['vpnmode'] = "client";
@@ -49,8 +55,11 @@ function multihop_start(&$a_client,&$g){
 			// Connect to OpenVPN Management Socket and get current status	
 			$socket = "unix://{$g['openvpn_base']}/{$client['mgmt']}/sock";
 			$status = openvpn_get_client_status($client, $socket);
+			
+			service_control_stop("openvpn", $extras);
 
 			sleep(5);
+
 			log_error("Starting {$client['name']}");
 			service_control_start("openvpn", $extras);
 	
@@ -74,21 +83,56 @@ function multihop_start(&$a_client,&$g){
 			}
 			}
 			log_error("Multihop: all clients up");
+			if(array_key_exists("keepalive",$client)) {
+			log_error("Multihop: Keepalive");
+			multihop_keepalive($a_client,$g);		
+			} else {
+			log_error("Multihop: No Keepalive");	
 			}
-
-
-function multihop_autostart(&$a_client,&$g,&$pidfile){
-
-$pid = pcntl_fork();
-if($pid == -1){
-	log_error("Multihop: ERROR - could not daemonize process");
-	return 1; //error
 }
-else if($pid){
-	file_put_contents($pidfile, "{$pid}");
-	return 0; //success
-} else {
 
+
+function multihop_keepalive(&$a_client,&$g){
+
+	$pid = pcntl_fork();
+	$stat=1;
+	$pidfile="/var/run/multihop.pid";
+	$oldpid=file_get_contents($pidfile);
+	if(file_exists($pidfile)) {
+	posix_kill($oldpid,9);	
+	log_error("Multihop: Killing old Process {$oldpid}");
+	}
+
+		if($pid == -1){
+			log_error("Multihop: ERROR - could not daemonize process");
+			return 1; //error
+		} else if($pid) {
+			return 0;
+		} else {
+			$child_pid = getmypid();
+			file_put_contents($pidfile, "{$child_pid}");
+			log_error("Multihop: Keepalive started PID {$child_pid}");
+			while($stat) {
+				foreach($a_client as $client) {
+					if(get_status($client,$g)) {
+						log_error("Multihop: {$client['name']} up");	
+					} else {
+						log_error("Multihop: {$client['name']} down");	
+						$stat=0;
+					}
+				sleep(5);
+				}
+			}
+			$notice = "Multihop: {$client['name']} down, restarting Cascade";
+			file_notice( $id, $notice, $category = "OpenVPN", $url = "",  $priority = 1, $local_only = true );
+			log_error("Multihop: While loop");	
+			multihop_start($a_client,$g);
+		}
+	return 0; //success
+}
+/*
+		} else {
+	}
 //the main process
 
 while(file_exists($pidfile)){
@@ -116,7 +160,7 @@ while(file_exists($pidfile)){
 		log_error("Mulithop: Client started with Autorestart");
 	}
 	
-
+ */
 function multihop_deinstall() {
 	global $c_client, $a_client, $config;
 

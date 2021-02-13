@@ -202,6 +202,7 @@ foreach($id as $add=> $new) {
 	$ent['name']=$a_value[$new];
 	$ent['vpnid']=$a_id['vpnid'][$new];
 	$ent['mgmt'] = "client{$a_id['vpnid'][$new]}";
+	$ent['keepalive'] = $_POST['keepalive'];
 	$a_client[] = $ent;
 	log_error("Mulithop: New client added to configuration");
 }
@@ -351,6 +352,14 @@ if(!empty($a_client)) {
 		'Add default route',
 		'true'	
 		))->setHelp('Uncheck if you *do not* want to set default route to exit tunnel.');
+		
+	$section->addInput(new Form_Checkbox(
+		'keepalive',
+		'Enable Keepalive',
+		'Keepalive',
+		'true'	
+		))->setHelp('Uncheck to disable Restart in sequence, if any of the tunnels apear to be down');
+
 } else {
 	$section->addInput(new Form_Select(
 		'start', //Name
@@ -373,6 +382,13 @@ if(!empty($a_client)) {
 		'Add default route',
 		'true'	
 		))->setHelp('Uncheck if you *do not* want to set default route to exit tunnel.');
+
+	$section->addInput(new Form_Checkbox(
+		'keepalive',
+		'Enable Keepalive',
+		'Keepalive',
+		'true'	
+		))->setHelp('Uncheck to disable Restart in sequence, if any of the tunnels apear to be down');
 	} 
 }
 endif;
@@ -380,6 +396,7 @@ endif;
 print($form);
 
 ?>
+
 
 <div class="panel panel-default">
 	<div class="panel-heading"><h2 class="panel-title"><?=gettext('Chain')?></h2></div>
@@ -422,27 +439,33 @@ print($form);
 </div>
 <form action="vpn_openvpn_multihop.php" method="post">
 <nav class="action-buttons">
-<button class="btn btn-success btn-sm" type="submit" name="act" value="new">
-	<i class="fa fa-plus icon-embed-btn"> </i>
-	Add
-</button>
-		<button class="btn btn-danger btn-sm" type="submit" name="act" value="del">
-		<i class="text-danger fa fa-trash icon-embed-btn"></i>
-			Delete
+		<button class="btn btn-success btn-sm" type="submit" name="act" value="new">
+			<i class="fa fa-plus icon-embed-btn"> </i>
+			Add
 		</button>
 		<button class="btn btn-success btn-sm" type="submit" name="act" value="start">
 			<i class="fa fa-play-circle icon-embed-btn"> </i>
 			Start
 		</button>
+<!--
 		<button class="btn btn-success btn-sm" type="submit" name="act" value="autostart">
 			<i class="fa fa-retweet icon-embed-btn"> </i>
 			Autorestart
 		</button>
+-->
 		<button class="btn btn-danger btn-sm" type="submit" name="act" value="stop">
 		<i class="text-danger fa fa-times-circle icon-embed-btn"></i>
 			Stop
 		</button>
+		<button class="btn btn-danger btn-sm" type="submit" name="act" value="del">
+		<i class="text-danger fa fa-trash icon-embed-btn"></i>
+			Delete
+		</button>
 </nav>
+		</br>
+		</br>
 </form>
+<div class="alert alert-info clearfix" role="alert">
+	<div class="pull-left"><strong>Quick Guide:</strong></div></div>
 
 <?php include("foot.inc");?>
