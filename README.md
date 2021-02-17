@@ -14,8 +14,8 @@ preperations.
 ## Installation 
 
 ```bash: 
-fetch https://github.com/ddowse/pfSense-pkg-openvpn-multihop/releases/download/alpha-v0.1_9/pfSense-pkg-openvpn-multihop-0.1_9.txz   
-pkg add pfSense-pkg-openvpn-multihop-0.1_9.txz
+fetch https://github.com/ddowse/pfSense-pkg-openvpn-multihop/releases/download/alpha-v0.1_10/pfSense-pkg-openvpn-multihop-0.1_10.txz
+pkg add pfSense-pkg-openvpn-multihop-0.1_10.txz
 ```
 
 # TODO: 
