@@ -50,7 +50,7 @@ function multihop_killkeepalive() {
 	$oldpid=file_get_contents($pidfile);
 	posix_kill($oldpid,9);	
 	unlink($pidfile);
-	log_error("Multihop: Killing old Process {$oldpid}");
+	//log_error("Multihop: Killing old Process {$oldpid}");
 	}
 }
 
@@ -63,9 +63,9 @@ function multihop_keepstop(&$a_client,&$g) {
 		$extras['vpnmode'] = "client";
 		$extras['id'] = $client['vpnid'];
 		service_control_stop("openvpn", $extras);
-		log_error("Mulithop: {$client['name']} stopped");
+		//log_error("Mulithop: {$client['name']} stopped");
 		}
-		log_error("Mulithop: all clients stopped");
+		//log_error("Mulithop: all clients stopped");
 	}
 
 function multihop_stop(&$a_client,&$g) {
@@ -77,9 +77,9 @@ function multihop_stop(&$a_client,&$g) {
 		$extras['vpnmode'] = "client";
 		$extras['id'] = $client['vpnid'];
 		service_control_stop("openvpn", $extras);
-		log_error("Mulithop: {$client['name']} stopped");
+		//log_error("Mulithop: {$client['name']} stopped");
 		}
-		log_error("Mulithop: all clients stopped");
+		//log_error("Mulithop: all clients stopped");
 	}
 
 function multihop_start(&$a_client,&$g){
@@ -94,7 +94,7 @@ function multihop_start(&$a_client,&$g){
 
 			sleep(5);
 
-			log_error("Multihop: Starting {$client['name']}");
+			//log_error("Multihop: Starting {$client['name']}");
 
 			service_control_start("openvpn", $extras);
 
@@ -102,24 +102,24 @@ function multihop_start(&$a_client,&$g){
 
 			while(!get_status($client,$g) &&  $timeout <  5) {
 			sleep(1);
-			log_error("Multihop: check {$client['name']}");
+			//log_error("Multihop: check {$client['name']}");
 			$timeout++;
 			}
 
 			if($timeout == 5) {
-			log_error("Multihop: Error starting {$client['name']}"); 
+			//log_error("Multihop: Error starting {$client['name']}"); 
 			multihop_stop($a_client,$g);
 			return "Couldn't start client: {$client['name']}. Check your OpenVPN logfile.";
 			} 
 
-			log_error("Multihop: {$client['name']} up");	
+			//log_error("Multihop: {$client['name']} up");	
 }
-			log_error("Multihop: all clients up");
+			//log_error("Multihop: all clients up");
 
 			if(array_key_exists("keepalive",$client)) {
 			multihop_keepalive($a_client,$g);		
 			} else {
-			log_error("Multihop: No Keepalive set");	
+			//log_error("Multihop: No Keepalive set");	
 			}
 	}
 
@@ -134,7 +134,7 @@ function multihop_keepstart(&$a_client,&$g){
 
 			sleep(5);
 
-			log_error("Multihop: Starting {$client['name']}");
+			//log_error("Multihop: Starting {$client['name']}");
 
 			service_control_start("openvpn", $extras);
 
@@ -142,25 +142,25 @@ function multihop_keepstart(&$a_client,&$g){
 
 			while(!get_status($client,$g) &&  $timeout <  5) {
 			sleep(1);
-			log_error("Multihop: check {$client['name']}");
+			//log_error("Multihop: check {$client['name']}");
 			$timeout++;
 			}
 
 			if($timeout == 5) {
-			log_error("Multihop: Error starting {$client['name']}"); 
+			//log_error("Multihop: Error starting {$client['name']}"); 
 			multihop_keepstop($a_client,$g);		
 			multihop_keepalive($a_client,$g);		
 			} 
-			log_error("Multihop: {$client['name']} up");	
+			//log_error("Multihop: {$client['name']} up");	
 }
-			log_error("Multihop: all clients up");
+			//log_error("Multihop: all clients up");
 
 			multihop_keepalive($a_client,$g);		
 			}
 
 function multihop_keepalive(&$a_client,&$g){
 	
-	log_error("Multihop: Starting Keepalive");
+	//log_error("Multihop: Starting Keepalive");
 
 	$pid = pcntl_fork();
 	$stat=1;
@@ -168,24 +168,24 @@ function multihop_keepalive(&$a_client,&$g){
 	if(file_exists($pidfile)) {
 	$oldpid=file_get_contents($pidfile);
 	posix_kill($oldpid,9);	
-	log_error("Multihop: Killing old Process {$oldpid}");
+	//log_error("Multihop: Killing old Process {$oldpid}");
 	}
 
 		if($pid == -1){
-			log_error("Multihop: ERROR - could not daemonize process");
+			//log_error("Multihop: ERROR - could not daemonize process");
 			return 1; //error
 		} else if($pid) {
 			return 0;
 		} else {
 			$child_pid = getmypid();
 			file_put_contents($pidfile, "{$child_pid}");
-			log_error("Multihop: Keepalive started PID {$child_pid}");
+			//log_error("Multihop: Keepalive started PID {$child_pid}");
 			while($stat) {
 				foreach($a_client as $client) {
 					if(get_status($client,$g)) {
-						log_error("Multihop: {$client['name']} up");	
+						//log_error("Multihop: {$client['name']} up");	
 					} else {
-						log_error("Multihop: {$client['name']} down");	
+						//log_error("Multihop: {$client['name']} down");	
 						$stat=0;
 					}
 				sleep(5);
@@ -227,7 +227,7 @@ function multihop_deinstall() {
 			$settings['custom_options'] = $l_custom;
 			unset($settings['route_no_exec']);
 			$c_client[$index] = $settings;
-			log_error("Mulithop: Route CMD deleted");
+			//log_error("Mulithop: Route CMD deleted");
 			break;
 		}
 	$idx++;

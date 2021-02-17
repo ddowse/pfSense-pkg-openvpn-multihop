@@ -186,11 +186,11 @@ foreach($id as $add=> $new) {
 	$ent['keepalive'] = $_POST['keepalive'];
 	}
 	$a_client[] = $ent;
-	log_error("Mulithop: New client added to configuration");
+	//log_error("Mulithop: New client added to configuration");
 }
 	write_config("Written");
 
-	log_error("Mulithop: New list created");
+	//log_error("Mulithop: New list created");
 
 	if(!$savemsg) {
 	$savemsg="New Multihop list created" ;
@@ -229,7 +229,7 @@ if ($act == "del") {
 			$settings['custom_options'] = $l_custom;
 			unset($settings['route_no_exec']);
 			$c_client[$index] = $settings;
-			log_error("Mulithop: routing options removed");
+			//log_error("Mulithop: routing options removed");
 			break;
 		}
 	$idx++;
@@ -241,7 +241,7 @@ if ($act == "del") {
 	$config['installedpackages']['openvpn-multihop']['item']=array();
 	$a_client = &$config['installedpackages']['openvpn-multihop']['item'];
 	write_config("Mulithop: list deleted ");
-	log_error("Mulithop: list deleted");
+	//log_error("Mulithop: list deleted");
 
 	$warnmsg="Multihop: Configuration deleted";
 
