@@ -117,8 +117,8 @@ function multihop_keepalive(&$a_client,&$g){
 	$pid = pcntl_fork();
 	$stat=1;
 	$pidfile="/var/run/multihop.pid";
-	$oldpid=file_get_contents($pidfile);
 	if(file_exists($pidfile)) {
+	$oldpid=file_get_contents($pidfile);
 	posix_kill($oldpid,9);	
 	log_error("Multihop: Killing old Process {$oldpid}");
 	}
