@@ -55,6 +55,19 @@ function multihop_killkeepalive() {
 }
 
 
+function multihop_keepstop(&$a_client,&$g) {
+
+
+	foreach (array_reverse($a_client) as $client) {
+		
+		$extras['vpnmode'] = "client";
+		$extras['id'] = $client['vpnid'];
+		service_control_stop("openvpn", $extras);
+		log_error("Mulithop: {$client['name']} stopped");
+		}
+		log_error("Mulithop: all clients stopped");
+	}
+
 function multihop_stop(&$a_client,&$g) {
 
 	multihop_killkeepalive();
@@ -81,7 +94,7 @@ function multihop_start(&$a_client,&$g){
 
 			sleep(5);
 
-			log_error("Starting {$client['name']}");
+			log_error("Multihop: Starting {$client['name']}");
 
 			service_control_start("openvpn", $extras);
 
@@ -89,12 +102,12 @@ function multihop_start(&$a_client,&$g){
 
 			while(!get_status($client,$g) &&  $timeout <  5) {
 			sleep(1);
-			log_error("check {$client['name']}");
+			log_error("Multihop: check {$client['name']}");
 			$timeout++;
 			}
 
 			if($timeout == 5) {
-			log_error("Error starting {$client['name']}"); 
+			log_error("Multihop: Error starting {$client['name']}"); 
 			multihop_stop($a_client,$g);
 			return "Couldn't start client: {$client['name']}. Check your OpenVPN logfile.";
 			} 
@@ -121,7 +134,7 @@ function multihop_keepstart(&$a_client,&$g){
 
 			sleep(5);
 
-			log_error("Starting {$client['name']}");
+			log_error("Multihop: Starting {$client['name']}");
 
 			service_control_start("openvpn", $extras);
 
@@ -129,13 +142,13 @@ function multihop_keepstart(&$a_client,&$g){
 
 			while(!get_status($client,$g) &&  $timeout <  5) {
 			sleep(1);
-			log_error("check {$client['name']}");
+			log_error("Multihop: check {$client['name']}");
 			$timeout++;
 			}
 
 			if($timeout == 5) {
-			log_error("Error starting {$client['name']}"); 
-			service_control_stop("openvpn", $extras);
+			log_error("Multihop: Error starting {$client['name']}"); 
+			multihop_keepstop($a_client,$g);		
 			multihop_keepalive($a_client,$g);		
 			} 
 			log_error("Multihop: {$client['name']} up");	
