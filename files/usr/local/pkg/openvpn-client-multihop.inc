@@ -110,6 +110,41 @@ function multihop_start(&$a_client,&$g){
 			}
 	}
 
+function multihop_keepstart(&$a_client,&$g){
+
+			foreach ($a_client as $client) {
+			$extras['vpnmode'] = "client";
+			$extras['id'] = $client['vpnid'];
+
+			// Make sure that the tunnel is down
+			service_control_stop("openvpn", $extras);
+
+			sleep(5);
+
+			log_error("Starting {$client['name']}");
+
+			service_control_start("openvpn", $extras);
+
+			$timeout = 0;
+
+			while(!get_status($client,$g) &&  $timeout <  5) {
+			sleep(1);
+			log_error("check {$client['name']}");
+			$timeout++;
+			}
+
+			if($timeout == 5) {
+			log_error("Error starting {$client['name']}"); 
+			service_control_stop("openvpn", $extras);
+			multihop_keepalive($a_client,$g);		
+			} 
+			log_error("Multihop: {$client['name']} up");	
+}
+			log_error("Multihop: all clients up");
+
+			multihop_keepalive($a_client,$g);		
+			}
+
 function multihop_keepalive(&$a_client,&$g){
 	
 	log_error("Multihop: Starting Keepalive");
@@ -145,7 +180,7 @@ function multihop_keepalive(&$a_client,&$g){
 			}
 			$notice = "Multihop: {$client['name']} down, restarting Cascade";
 			file_notice( $id, $notice, $category = "OpenVPN", $url = "",  $priority = 1, $local_only = true );
-			multihop_start($a_client,$g);
+			multihop_keepstart($a_client,$g);
 		}
 	return 0; //success
 }
