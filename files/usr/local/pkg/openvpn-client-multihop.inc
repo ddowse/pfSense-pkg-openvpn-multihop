@@ -69,7 +69,7 @@ function multihop_stop(&$a_client,&$g) {
 		log_error("Mulithop: all clients stopped");
 	}
 
-function multihop_start(&$a_client,&$g,&$timeout){
+function multihop_start(&$a_client,&$g){
 //			multihop_stop($a_client,$g);
 
 			foreach ($a_client as $client) {
