@@ -25,15 +25,39 @@ require_once("service-utils.inc");
 
 global $g, $a_client;
 
+// Returns the key of ['server_addr'] this is the to be used
+// to set the route-up command
+function server_addr(&$vpnid) {
+		$settings = openvpn_get_settings($mode,$vpnid);
+		$server = $settings['server_addr'];
+		return $server;	
+}
 
-function multihop_stop(&$a_client,&$g) {
-	
+function get_status(&$client,&$g) {
+	$socket = "unix://{$g['openvpn_base']}/{$client['mgmt']}/sock";
+	$status = openvpn_get_client_status($client, $socket);
+	if($status['status'] != "up" ) {
+		return 0;
+	} else {
+		return 1;
+	}
+}
+
+function multihop_killkeepalive() {
 	$pidfile="/var/run/multihop.pid";
-	$oldpid=file_get_contents($pidfile);
+
 	if(file_exists($pidfile)) {
+	$oldpid=file_get_contents($pidfile);
 	posix_kill($oldpid,9);	
+	unlink($pidfile);
 	log_error("Multihop: Killing old Process {$oldpid}");
 	}
+}
+
+
+function multihop_stop(&$a_client,&$g) {
+
+	multihop_killkeepalive();
 
 	foreach (array_reverse($a_client) as $client) {
 		
@@ -45,54 +69,50 @@ function multihop_stop(&$a_client,&$g) {
 		log_error("Mulithop: all clients stopped");
 	}
 
-function multihop_start(&$a_client,&$g){
+function multihop_start(&$a_client,&$g,&$timeout){
 //			multihop_stop($a_client,$g);
+
 			foreach ($a_client as $client) {
-			unset($up);	
 			$extras['vpnmode'] = "client";
 			$extras['id'] = $client['vpnid'];
 
-			// Connect to OpenVPN Management Socket and get current status	
-			$socket = "unix://{$g['openvpn_base']}/{$client['mgmt']}/sock";
-			$status = openvpn_get_client_status($client, $socket);
-			
+			// Make sure that the tunnel is down
 			service_control_stop("openvpn", $extras);
 
 			sleep(5);
 
 			log_error("Starting {$client['name']}");
+
 			service_control_start("openvpn", $extras);
-	
-			for($timeout=0;$timeout <= 5; $timeout++) {
-			log_error($timeout);	
-			$status = openvpn_get_client_status($client, $socket);
+
+			$timeout = 0;
+
+			while(!get_status($client,$g) &&  $timeout <  5) {
 			sleep(1);
-				if($status['status'] == "up") { 
-					log_error("Mulithop: client {$client['name']} started"); 
-					$up=1;
-					break;
-				}
+			log_error("check {$client['name']}");
+			$timeout++;
 			}
-			if(isset($up)) { 
-				continue; 
-			} else {
+
+			if($timeout == 5) {
 			log_error("Error starting {$client['name']}"); 
 			multihop_stop($a_client,$g);
 			return "Couldn't start client: {$client['name']}. Check your OpenVPN logfile.";
-			break;	
-			}
-			}
+			} 
+
+			log_error("Multihop: {$client['name']} up");	
+}
 			log_error("Multihop: all clients up");
+
 			if(array_key_exists("keepalive",$client)) {
-			log_error("Multihop: Keepalive");
 			multihop_keepalive($a_client,$g);		
 			} else {
-			log_error("Multihop: No Keepalive");	
+			log_error("Multihop: No Keepalive set");	
 			}
-}
-
+	}
 
 function multihop_keepalive(&$a_client,&$g){
+	
+	log_error("Multihop: Starting Keepalive");
 
 	$pid = pcntl_fork();
 	$stat=1;
@@ -129,7 +149,10 @@ function multihop_keepalive(&$a_client,&$g){
 		}
 	return 0; //success
 }
+
 function multihop_deinstall() {
+	multihop_stop($a_client,$g);
+
 	global $c_client, $a_client, $config;
 
 	$a_client = &$config['installedpackages']['openvpn-multihop']['item'];

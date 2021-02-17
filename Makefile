@@ -2,7 +2,7 @@
 
 PORTNAME=	pfSense-pkg-openvpn-multihop
 PORTVERSION=	0.1
-PORTREVISION=	9
+PORTREVISION=	10
 CATEGORIES=	security
 MASTER_SITES=	# empty	
 DISTFILES=	# empty

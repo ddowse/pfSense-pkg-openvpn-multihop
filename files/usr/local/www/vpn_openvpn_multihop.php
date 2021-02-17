@@ -95,26 +95,6 @@ if ($act == "new") {
 }
 
 
-// Returns the key of ['server_addr'] this is the to be used
-// to set the route-up command
-function server_addr($vpnid) {
-		$settings = openvpn_get_settings($mode,$vpnid);
-		$server = $settings['server_addr'];
-		return $server;	
-}
-
-// Check the status of the connection trough opnvpn socket
-function get_status(&$client,&$g) {
-	$socket = "unix://{$g['openvpn_base']}/{$client['mgmt']}/sock";
-	$status = openvpn_get_client_status($client, $socket);
-	if($status['status'] != "up" ) {
-		return 0;
-	} else {
-		return 1;
-	}
-}
-
-
 if ($_POST['save']) {
 
 if ($_POST['start'] == $_POST['exit']) {
@@ -202,7 +182,9 @@ foreach($id as $add=> $new) {
 	$ent['name']=$a_value[$new];
 	$ent['vpnid']=$a_id['vpnid'][$new];
 	$ent['mgmt'] = "client{$a_id['vpnid'][$new]}";
+	if(isset($_POST['keepalive'])) {
 	$ent['keepalive'] = $_POST['keepalive'];
+	}
 	$a_client[] = $ent;
 	log_error("Mulithop: New client added to configuration");
 }
@@ -271,7 +253,7 @@ if ($act == "stop") {
 }
 
 if ($act == "start") {
-	if (!empty(multihop_start($a_client,$g))) {
+	if (!empty($ret = multihop_start($a_client,$g))) {
 	$warnmsg="{$ret}";
 	} else {
 	$savemsg ="All tunnels started";
@@ -285,14 +267,6 @@ if($_POST['apply']) {
 	$savemsg ="All tunnels started";
 	}
 }
-
-if ($act == "autorestart") {
-	$pidfile="/var/run/multihop.pid";
-	if(!empty($ret= multihop_autostart($a_client,$g,$pidfile))) {
-	};
-	$applymsg="All tunnels will be started with auto restart";
-}
-
 
 $pgtitle = array("OpenVPN", "Client Mulithop");
 
@@ -340,7 +314,7 @@ $section = new Form_Section('Add Client');
 if(!empty($a_client)) { 
 	$section->addInput(new Form_Select(
 		'exit', //Name
-		'New Exit', //Description Asterik Is Inderline
+		'New Exit', // Frontend Text
 		$a_value['description'],
 		$a_value
 		))->setHelp('This Client will be added to the list of tunnels and act as the  new exit');
@@ -362,15 +336,15 @@ if(!empty($a_client)) {
 
 } else {
 	$section->addInput(new Form_Select(
-		'start', //Name
-		'Start', //Description Asterik Is Inderline
+		'start',
+		'Start', 
 		$a_value['description'],
 		$a_value
 		))->setHelp('This client will be the first tunnel');
 
 	$section->addInput(new Form_Select(
-		'exit', //Name
-		'Exit', //Description Asterik Is Inderline
+		'exit', 
+		'Exit', 
 		$a_value['description'],
 		$a_value
 		))->setHelp('This client will the exit tunnel');
@@ -466,6 +440,11 @@ print($form);
 		</br>
 </form>
 <div class="alert alert-info clearfix" role="alert">
-	<div class="pull-left"><strong>Quick Guide:</strong></div></div>
+	<div class="pull-left"><strong>Quick Guide</strong>
+	<br>This Multihop package cascades any OpenVPN clients. The OpenVPN connection always goes via the last hop.
+	<br>Make sure that NAT on VPN Interfaces is configured properly.
+	<br>Check for <a href="https://github.com/ddowse/pfSense-pkg-openvpn-multihop">Details</a> 
+	</div>
+</div>
 
 <?php include("foot.inc");?>

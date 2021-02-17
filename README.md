@@ -22,7 +22,7 @@ pkg add pfSense-pkg-openvpn-multihop-0.1_7.txz
 - ~If OpenVPN Client is in list - remove from Select Menu to avoid double selection~
 - ~Add route-up command to custom-options of tunnel. [details](https://github.com/ddowse/pf-tunnelactive#cascading-vpn)~
 - ~Add code to delete route-up~ 
-- Add autorestart option
+- ~Add autorestart option~
 
 # Nice to have
 - Profiles
