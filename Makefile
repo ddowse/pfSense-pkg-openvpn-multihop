@@ -1,8 +1,8 @@
 # $FreeBSD$
 
 PORTNAME=	pfSense-pkg-openvpn-multihop
-PORTVERSION=	0.1
-PORTREVISION=	10
+PORTVERSION=	1.0
+PORTREVISION=	0
 CATEGORIES=	security
 MASTER_SITES=	# empty	
 DISTFILES=	# empty
