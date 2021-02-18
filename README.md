@@ -83,12 +83,26 @@ e.g:
 
 - Click Stop
 - Click Start
+ 
 
 Check routing like this
 
 ```bash:
 netstat -4nr
 ```
+
+Check tunnel(s) for passing openvpn traffic
+Interface and Port may vary
+
+```bash:
+tcpdump -nv -i ovpnc1 port 1149
+```
+
+```bash:
+curl ifconfig.co
+```
+
+Don't forget to check your logs(!)
 
 ## Issues
 
