@@ -35,7 +35,8 @@ pkg add https://github.com/ddowse/pfSense-pkg-openvpn-multihop/releases/download
 
 - Make sure that your OpenVPN Clients connected succesfully to your provider
 - Make sure that NAT is set properly to **Manual Outbound NAT** 
-- Make sure that NAT on each VPN Interface is set 
+- Make sure that NAT on each VPN Interface is set
+- Set Interface to any in OpenVPN Client Configuration.
 
 e.g:
 
@@ -103,6 +104,31 @@ curl ifconfig.co
 ```
 
 Don't forget to check your logs(!)
+
+## Technical 
+
+- Creating a 2 Tunnel cascade works by adding to the custom-options field of the first tunnel a route-up command.
+
+```bash
+route-up "/usr/local/etc/openvpn-multihop/addroute.sh 95.211.95.232"
+```
+
+The IP is the OpenVPN Server of the next tunnel. 
+
+The script (addroute.sh)  
+
+```bash:
+/sbin/route add -host ${1} $route_vpn_gateway 255.255.255.255
+```
+
+This will add to the routing table:
+
+```bash:
+95.211.95.232/32   10.3.3.2           UGS      ovpnc1
+```
+
+Connecting now to the IP 95.211.95.232 will go trough the first tunnel.
+
 
 ## Issues
 
