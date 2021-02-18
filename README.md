@@ -109,7 +109,8 @@ Don't forget to check your logs(!)
 
 ## Technical 
 
-- Creating a 2 Tunnel cascade works by adding to the custom-options field of the first tunnel a route-up command.
+- Creating a 2 Tunnel cascade works by adding to the custom-options field of the first tunnel a route-up command
+and remove any route exec settings e.g do not set default routing. 
 
 ```bash
 route-up "/usr/local/etc/openvpn-multihop/addroute.sh 95.211.95.232"
@@ -129,7 +130,9 @@ This will add to the routing table:
 95.211.95.232/32   10.3.3.2           UGS      ovpnc1
 ```
 
-Connecting now to the IP 95.211.95.232 will go trough the first tunnel.
+Connecting now to the IP 95.211.95.232 will go trough the first tunnel. 
+
+When the tunnel configuration is extended. The steps as before are repeated and route-up and route-exec are changed to the new exit.
 
 
 ## Issues
