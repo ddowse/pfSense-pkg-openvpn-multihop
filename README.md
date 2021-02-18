@@ -99,6 +99,8 @@ Interface and Port may vary
 tcpdump -nv -i ovpnc1 port 1149
 ```
 
+Check your IP.
+
 ```bash:
 curl ifconfig.co
 ```
