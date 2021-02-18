@@ -1,35 +1,87 @@
 # pfSense-pkg-openvpn-multihop
 Provides an easy way to setup multihop OpenVPN Connections. 
 
-![screenshot](screenrecord.gif)
-
-### Work in Progress.
-
 This utility will allow you to create a list of OpenVPN Tunnels and start them cascaded.   
 e.g The the second tunnel will be established trough the first tunnel and so on.   
 
 Please see this Repo for more [details](https://github.com/ddowse/pf-tunnelactive) in Setup and   
-preperations.   
+preperations.
+
+
+## Build
+
+You will need a FreeBSD build environment. 
+
+```bash:
+git clone git@github.com:pfsense/FreeBSD-ports.git pfSense-ports
+cd pfSense-ports/security
+git clone https://github.com/ddowse/pfSense-pkg-openvpn-multihop
+cd pfSense-pkg-openvpn-multihop
+make package
+```
+
+Please check the [pfSense package development documentation](https://docs.netgate.com/pfsense/en/latest/development/developing-packages.html#testing-building-individual-packages) for more information.
+
 
 ## Installation 
 
-```bash: 
-fetch https://github.com/ddowse/pfSense-pkg-openvpn-multihop/releases/download/alpha-v0.1_10/pfSense-pkg-openvpn-multihop-0.1_10.txz
-pkg add pfSense-pkg-openvpn-multihop-0.1_10.txz
+```bash:
+pkg add https://github.com/ddowse/pfSense-pkg-openvpn-multihop/releases/download/v1.0/pfSense-pkg-openvpn-multihop-1.0.txz
 ```
 
-# TODO: 
-- ~If OpenVPN Client is in list - remove from Select Menu to avoid double selection~
-- ~Add route-up command to custom-options of tunnel. [details](https://github.com/ddowse/pf-tunnelactive#cascading-vpn)~
-- ~Add code to delete route-up~ 
-- ~Add autorestart option~
+## Preperations (in General)
 
-# Nice to have
-- Profiles
-- Not going to happen ~Auto add NAT Rules~ 
+- **Create Backup of your configuration**
+- Make sure that your OpenVPN Clients connected succesfully to your provider
+- Make sure that NAT is set properly to **Manual Outbound NAT** 
+- Make sure that NAT on each VPN Interface is set 
 
-#### Note: This Package is/was made for a client of mine and the client wanted it to be also available for the pfsense and open-source community.  
+e.g:
 
-So... 
+```
+  nat on ovpnc1 inet all -> (ovpnc1) port 1024:65535 round-robin
+```
 
-Thanks John! :thumbsup:
+[readme-nat](readme-nat.png)
+
+## Usage
+
+- If 'keepalive' is checked a background process is started once all tunnels are up. It will check the status of all tunnels one by one every 3 seconds. If any tunnel of the configured tunnels is down, all tunnels brought down and the cascade will be restarted. 
+
+## Create 
+
+- Navigate to VPN -> OpenVPN -> Client Multihop
+- Click the add button 
+- Choose 2 OpenVPN Clients from the dropdown menue
+- Click save
+- Click apply to save and start
+- Wait aprox. 30 seconds for page to refresh and checkmarks turned green
+
+## Extend 
+
+- Click the add Button
+- Choose OpenVPN Client
+- Save and click apply
+- Wait aprox. 30 seconds for page to refresh and checkmarks turned green
+
+## Start
+
+- Will start the tunnels one by one. 
+- Will start background process if keepalive was checked on creation.
+
+## Stop
+
+- Click stop this will also kill the keepalive process
+
+## Delete
+
+- Will remove all configuration, can't be undone. 
+
+
+## Trouble shooting
+
+```bash:
+netstat -4nr
+```
+
+
