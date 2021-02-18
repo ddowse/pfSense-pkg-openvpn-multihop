@@ -83,7 +83,7 @@ e.g:
 ## Trouble shooting
 
 - Click Stop
-- click Start
+- Click Start
 
 Check routing like this
 
