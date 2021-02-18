@@ -148,4 +148,4 @@ When the tunnel configuration is extended. The steps as before are repeated and 
 ## Donations 
 
 If you like this package and show your support you can do this via [PayPal](https://www.paypal.com/paypalme/DanielDowse) at the moment.
-If you want to get in touch with check my [homepage](https://daemonbytes.net)
+If you want to get in touch with me go visit my [homepage](https://daemonbytes.net). Thanks. 
