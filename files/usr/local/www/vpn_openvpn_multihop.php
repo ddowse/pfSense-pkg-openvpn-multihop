@@ -268,7 +268,7 @@ if($_POST['apply']) {
 	}
 }
 
-$pgtitle = array("OpenVPN", "Client Mulithop");
+$pgtitle = array("OpenVPN", "Mulithop");
 
 include("head.inc");
 
