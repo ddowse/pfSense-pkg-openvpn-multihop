@@ -42,7 +42,7 @@ e.g:
   nat on ovpnc1 inet all -> (ovpnc1) port 1024:65535 round-robin
 ```
 
-[readme-nat](readme-nat.png)
+![readme-nat](readme-nat.png)
 
 ## Usage
 
