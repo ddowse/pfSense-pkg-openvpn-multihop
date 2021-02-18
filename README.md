@@ -1,7 +1,8 @@
 # pfSense-pkg-openvpn-multihop
 Provides an easy way to setup multihop OpenVPN Connections. 
 
-This utility will allow you to create a list of OpenVPN Tunnels and start them cascaded.   
+This utility will allow you to create a list of OpenVPN Tunnels and start them cascaded.
+
 e.g The the second tunnel will be established trough the first tunnel and so on.   
 
 Please see this Repo for more [details](https://github.com/ddowse/pf-tunnelactive) in Setup and   
@@ -31,14 +32,15 @@ pkg add https://github.com/ddowse/pfSense-pkg-openvpn-multihop/releases/download
 
 ## Preperations (in General)
 
-- **Create Backup of your configuration**
+- **Create Backup of your configuration!**
+
 - Make sure that your OpenVPN Clients connected succesfully to your provider
 - Make sure that NAT is set properly to **Manual Outbound NAT** 
 - Make sure that NAT on each VPN Interface is set 
 
 e.g:
 
-```
+```bash:
   nat on ovpnc1 inet all -> (ovpnc1) port 1024:65535 round-robin
 ```
 
@@ -80,8 +82,26 @@ e.g:
 
 ## Trouble shooting
 
+- Click Stop
+- click Start
+
+Check routing like this
+
 ```bash:
 netstat -4nr
 ```
 
+## Issues
 
+- Please report any issues via github
+- Thorough testing was done with Perfect Privacy VPN *only*
+
+
+## Acknowledgment
+
+**"John"** had the idea for this package and provided the initial financial support to make it possible. Thanks. 
+
+## Donations 
+
+If you like this package and show your support you can do this via [PayPal](https://www.paypal.com/paypalme/DanielDowse) at the moment.
+If you want to get in touch with check my [homepage](https://daemonbytes.net)
