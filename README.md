@@ -34,9 +34,10 @@ pkg add https://github.com/ddowse/pfSense-pkg-openvpn-multihop/releases/download
 - **Create Backup of your configuration!**
 
 - Make sure that your OpenVPN Clients connected succesfully to your provider
+- Assign the *Network Ports* to an Interfacae under Interfaces > Interface Assignments
 - Make sure that NAT is set properly to **Manual Outbound NAT** 
 - Make sure that NAT on each VPN Interface is set
-- Set Interface to any in OpenVPN Client Configuration.
+
 
 e.g:
 
@@ -46,13 +47,15 @@ e.g:
 
 ![readme-nat](readme-nat.png)
 
+- Set Interface to *any* in OpenVPN Client Configuration.
+
 ## Usage
 
 - If 'keepalive' is checked a background process is started once all tunnels are up. It will check the status of all tunnels one by one every 3 seconds. If any tunnel of the configured tunnels is down, all tunnels brought down and the cascade will be restarted. 
 
 ## Create 
 
-- Navigate to VPN -> OpenVPN -> Client Multihop
+- Navigate to VPN > OpenVPN > Client Multihop
 - Click the add button 
 - Choose 2 OpenVPN Clients from the dropdown menue
 - Click save
@@ -139,7 +142,6 @@ When the tunnel configuration is extended. The steps as before are repeated and 
 
 - Please report any issues via github
 - Thorough testing was done with Perfect Privacy VPN *only*
-
 
 ## Acknowledgment
 
