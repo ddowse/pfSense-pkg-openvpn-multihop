@@ -146,8 +146,3 @@ When the tunnel configuration is extended. The steps as before are repeated and 
 ## Acknowledgment
 
 **"John"** had the idea for this package and provided the initial financial support to make it possible. Thanks. 
-
-## Donations 
-
-If you like this package and show your support you can do this via [PayPal](https://www.paypal.com/paypalme/DanielDowse) at the moment.
-If you want to get in touch with me go visit my [homepage](https://daemonbytes.net). Thanks. 
